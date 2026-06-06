@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinControl – Gestão Financeira</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0c10; --surface:#111318; --surface2:#181c24; --border:#1e2330;
+    --accent:#00e5a0; --accent2:#ff6b35; --accent3:#7b8cff;
+    --danger:#ff4d6d; --warning:#ffd166;
+    --text:#e8ecf4; --text2:#8891a8; --text3:#4a5268;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+  .logo{padding:28px 24px 20px;font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--accent);letter-spacing:-.5px;border-bottom:1px solid var(--border);}
+  .logo span{color:var(--text2);font-weight:400;font-size:11px;display:block;margin-top:2px;letter-spacing:1px;text-transform:uppercase;}
+  .nav{flex:1;padding:16px 0;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:11px 24px;cursor:pointer;font-size:12px;color:var(--text2);letter-spacing:.5px;transition:all .2s;border-left:3px solid transparent;}
+  .nav-item:hover{color:var(--text);background:var(--surface2);}
+  .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(0,229,160,.05);}
+
+  .main{margin-left:220px;min-height:100vh;}
+  .topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0;z-index:50;}
+  .page-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;}
+  .page-title span{color:var(--text2);font-size:13px;font-weight:400;margin-left:10px;}
+  .topbar-actions{display:flex;gap:8px;align-items:center;}
+
+  .btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;transition:all .2s;letter-spacing:.3px;}
+  .btn-primary{background:var(--accent);color:#000;}
+  .btn-primary:hover{background:#00ffb3;}
+  .btn-edit{background:rgba(123,140,255,.15);color:var(--accent3);border:1px solid rgba(123,140,255,.3);}
+  .btn-edit:hover{background:rgba(123,140,255,.25);}
+  .btn-danger{background:rgba(255,77,109,.15);color:var(--danger);border:1px solid rgba(255,77,109,.3);}
+  .btn-danger:hover{background:rgba(255,77,109,.25);}
+  .btn-sm{padding:5px 10px;font-size:11px;}
+  .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+  .btn-ghost:hover{color:var(--text);border-color:var(--text3);}
+  .btn-warning{background:rgba(255,209,102,.15);color:var(--warning);border:1px solid rgba(255,209,102,.3);}
+  .btn-warning:hover{background:rgba(255,209,102,.25);}
+
+  .content{padding:28px 32px;}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .sum-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .sum-card .label{font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+  .sum-card .value{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;}
+  .sum-card .sub{font-size:11px;color:var(--text2);margin-top:4px;}
+  .green{color:var(--accent);} .red{color:var(--danger);} .yellow{color:var(--warning);} .blue{color:var(--accent3);}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+  .card-body{padding:0;}
+  table{width:100%;border-collapse:collapse;}
+  th{padding:11px 16px;text-align:left;font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border);}
+  td{padding:11px 16px;font-size:12px;border-bottom:1px solid rgba(30,35,48,.5);vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,.02);}
+  .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:500;}
+  .badge-green{background:rgba(0,229,160,.12);color:var(--accent);}
+  .badge-red{background:rgba(255,77,109,.12);color:var(--danger);}
+  .badge-yellow{background:rgba(255,209,102,.12);color:var(--warning);}
+  .badge-blue{background:rgba(123,140,255,.12);color:var(--accent3);}
+
+  /* Histórico de lançamentos inline */
+  .history-row td{background:rgba(10,12,16,.6)!important;padding:0!important;}
+  .history-inner{padding:12px 16px 14px 48px;}
+  .history-title{font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;}
+  .history-months{display:flex;flex-wrap:wrap;gap:8px;}
+  .month-chip{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;}
+  .month-chip .mc-label{color:var(--text2);}
+  .month-chip .mc-val{color:var(--accent);font-weight:500;}
+  .month-chip .mc-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;line-height:1;padding:0 0 0 2px;}
+  .month-chip .mc-del:hover{color:var(--danger);}
+  .add-month{display:flex;gap:6px;margin-top:10px;align-items:center;}
+  .add-month input{width:110px;padding:6px 10px;font-size:11px;}
+  .add-month select{padding:6px 10px;font-size:11px;}
+  .stats-row{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;}
+  .stat-chip{font-size:11px;color:var(--text2);}
+  .stat-chip strong{color:var(--text);}
+
+  /* MODAL */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:540px;max-width:96vw;max-height:92vh;overflow-y:auto;}
+  .modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .modal-title{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;}
+  .modal-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:22px;}
+  .modal-body{padding:24px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+  .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  label{font-size:11px;color:var(--text2);letter-spacing:.5px;}
+  input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border .2s;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+  select option{background:var(--surface2);}
+  .modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+
+  /* Dívidas ranking */
+  .debt-rank{display:flex;flex-direction:column;gap:10px;padding:16px;}
+  .debt-item{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);}
+  .rank-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;flex-shrink:0;}
+  .rank-1{background:rgba(255,77,109,.2);color:var(--danger);}
+  .rank-2{background:rgba(255,209,102,.2);color:var(--warning);}
+  .rank-3{background:rgba(0,229,160,.2);color:var(--accent);}
+  .rank-n{background:var(--border);color:var(--text2);}
+  .debt-info{flex:1;} .debt-name{font-size:13px;font-weight:500;} .debt-detail{font-size:11px;color:var(--text2);margin-top:2px;}
+  .debt-amount{text-align:right;} .debt-total{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;} .debt-rate{font-size:10px;color:var(--text2);}
+  .progress-bar{height:3px;background:var(--border);border-radius:2px;margin-top:8px;}
+  .progress-fill{height:100%;border-radius:2px;transition:width .5s;}
+
+  /* Metas */
+  .goals-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;}
+  .goal-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;}
+  .goal-name{font-size:13px;font-weight:500;margin-bottom:4px;}
+  .goal-sub{font-size:11px;color:var(--text2);margin-bottom:12px;}
+  .goal-amounts{display:flex;justify-content:space-between;margin-bottom:6px;}
+  .goal-amounts span{font-size:11px;color:var(--text2);}
+  .goal-amounts strong{font-size:13px;font-family:'Syne',sans-serif;font-weight:700;}
+
+  .overdue td{background:rgba(255,77,109,.04)!important;}
+  .empty{padding:36px;text-align:center;color:var(--text3);font-size:12px;}
+  .empty .emoji{font-size:30px;margin-bottom:8px;}
+  .section-hidden{display:none;}
+  .action-btns{display:flex;gap:5px;}
+
+  @media(max-width:900px){
+    .sidebar{display:none;} .main{margin-left:0;}
+    .summary-grid{grid-template-columns:1fr 1fr;} .form-row{grid-template-columns:1fr;} .goals-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">FinControl <span>gestão financeira</span></div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="showSection('dashboard',this)">📊 Dashboard</div>
+    <div class="nav-item" onclick="showSection('recebiveis',this)">💰 A Receber</div>
+    <div class="nav-item" onclick="showSection('entradas',this)">📈 Entradas</div>
+    <div class="nav-item" onclick="showSection('saidas',this)">📉 Saídas</div>
+    <div class="nav-item" onclick="showSection('dividas',this)">⚠️ Dívidas</div>
+    <div class="nav-item" onclick="showSection('metas',this)">🎯 Metas</div>
+    <div class="nav-item" onclick="showSection('cheques',this)">📋 Cheques</div>
+  </nav>
+</div>
+
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div id="sec-dashboard">
+    <div class="topbar">
+      <div class="page-title">Dashboard <span>visão geral</span></div>
+      <div style="font-size:12px;color:var(--text2)" id="current-date"></div>
+    </div>
+    <div class="content">
+      <div class="summary-grid">
+        <div class="sum-card"><div class="label">Total a Receber</div><div class="value green" id="sum-recebiveis">R$ 0</div><div class="sub" id="sum-recebiveis-count">0 devedores</div></div>
+        <div class="sum-card"><div class="label">Entradas (média/mês)</div><div class="value green" id="sum-entradas">R$ 0</div><div class="sub" id="sum-entradas-count">0 fontes</div></div>
+        <div class="sum-card"><div class="label">Saídas/Mês</div><div class="value red" id="sum-saidas">R$ 0</div><div class="sub" id="sum-saidas-count">0 compromissos</div></div>
+        <div class="sum-card"><div class="label">Saldo Médio/Mês</div><div class="value" id="sum-saldo">R$ 0</div><div class="sub">média entradas − saídas</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📅 Próximos Vencimentos</div></div>
+          <div class="card-body" id="dash-vencimentos"><div class="empty"><div class="emoji">🗓️</div>Sem saídas cadastradas</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">⚠️ Dívidas Prioritárias</div></div>
+          <div class="card-body" id="dash-dividas"><div class="empty"><div class="emoji">✅</div>Sem dívidas</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- A RECEBER -->
+  <div id="sec-recebiveis" class="section-hidden">
+    <div class="topbar">
+      <div class="page-title">A Receber <span>carros e imóveis parcelados</span></div>
+      <button class="btn btn-primary" onclick="openModal('modal-recebivel')">+ Cadastrar</button>
+    </div>
+    <div class="content">
+      <div class="card"><div class="card-body">
+        <table><thead><tr><th>Devedor</th><th>Descrição</th><th>Dia Venc.</th><th>Parcela</th><th>Pagas/Total</th><th>Restante</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody id="tb-recebiveis"><tr><td colspan="8" class="empty">Nenhum cadastrado</td></tr></tbody></table>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ENTRADAS -->
+  <div id="sec-entradas" class="section-hidden">
+    <div class="topbar">
+      <div class="page-title">Entradas <span>lance o valor real de cada mês</span></div>
+      <button class="btn btn-primary" onclick="openModal('modal-entrada')">+ Cadastrar Fonte</button>
+    </div>
+    <div class="content">
+      <div style="background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);">
+        💡 <strong style="color:var(--accent)">Como usar:</strong> Clique em <strong style="color:var(--text)">▶ Ver Histórico</strong> em cada fonte para lançar o valor real recebido em cada mês. O sistema calcula a média automaticamente.
+      </div>
+      <div class="card"><div class="card-body">
+        <table><thead><tr><th></th><th>Fonte</th><th>Categoria</th><th>Último Mês</th><th>Média (3m)</th><th>Média (6m)</th><th>Meses Lançados</th><th>Ações</th></tr></thead>
+        <tbody id="tb-entradas"><tr><td colspan="8" class="empty">Nenhuma entrada cadastrada</td></tr></tbody></table>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- SAÍDAS -->
+  <div id="sec-saidas" class="section-hidden">
+    <div class="topbar">
+      <div class="page-title">Saídas <span>compromissos e despesas</span></div>
+      <button class="btn btn-primary" onclick="openModal('modal-saida')">+ Cadastrar</button>
+    </div>
+    <div class="content">
+      <div class="card"><div class="card-body">
+        <table><thead><tr><th></th><th>Descrição</th><th>Categoria</th><th>Último Mês</th><th>Média (3m)</th><th>Dia Venc.</th><th>Saldo Devedor</th><th>Ações</th></tr></thead>
+        <tbody id="tb-saidas"><tr><td colspan="8" class="empty">Nenhuma saída cadastrada</td></tr></tbody></table>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- DÍVIDAS -->
+  <div id="sec-dividas" class="section-hidden">
+    <div class="topbar">
+      <div class="page-title">Dívidas <span>ranking de prioridade</span></div>
+      <button class="btn btn-primary" onclick="openModal('modal-divida')">+ Cadastrar</button>
+    </div>
+    <div class="content">
+      <div class="card" style="margin-bottom:16px"><div style="padding:14px 20px;font-size:12px;color:var(--text2);line-height:1.8">
+        ⚠️ Ranking ordenado pela <strong style="color:var(--text)">maior taxa de juros primeiro</strong> — quite a mais cara primeiro para economizar mais.
+      </div></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Ranking de Quitação</div><span id="total-dividas" style="font-size:12px;color:var(--text2)">Total: R$ 0</span></div>
+        <div class="debt-rank" id="ranking-dividas"><div class="empty"><div class="emoji">✅</div>Nenhuma dívida</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- METAS -->
+  <div id="sec-metas" class="section-hidden">
+    <div class="topbar">
+      <div class="page-title">Metas <span>objetivos financeiros</span></div>
+      <button class="btn btn-primary" onclick="openModal('modal-meta')">+ Nova Meta</button>
+    </div>
+    <div class="content">
+      <div class="card"><div class="goals-grid" id="grid-metas">
+        <div class="empty" style="grid-column:1/-1"><div class="emoji">🎯</div>Nenhuma meta cadastrada</div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- CHEQUES -->
+  <div id="sec-cheques" class="section-hidden">
+    <div class="topbar">
+      <div class="page-title">Cheques <span>cheques a cobrir</span></div>
+      <button class="btn btn-primary" onclick="openModal('modal-cheque')">+ Cadastrar</button>
+    </div>
+    <div class="content">
+      <div class="card"><div class="card-body">
+        <table><thead><tr><th>Favorecido</th><th>Valor</th><th>Vencimento</th><th>Banco</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody id="tb-cheques"><tr><td colspan="6" class="empty">Nenhum cheque cadastrado</td></tr></tbody></table>
+      </div></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ===== MODAIS ===== -->
+
+<!-- Modal A Receber -->
+<div class="overlay" id="modal-recebivel">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="mrt-title">💰 Cadastrar A Receber</div><button class="modal-close" onclick="closeModal('modal-recebivel')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="r-id">
+      <div class="form-row">
+        <div class="form-group"><label>Nome do Devedor</label><input id="r-devedor" placeholder="Ex: João Silva"></div>
+        <div class="form-group"><label>Descrição</label><input id="r-desc" placeholder="Ex: Civic 2020 prata"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Valor da Parcela (R$)</label><input id="r-valor" type="number" placeholder="0"></div>
+        <div class="form-group"><label>Dia de Vencimento</label><input id="r-dia" type="number" min="1" max="31" placeholder="Ex: 15"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Parcelas Pagas</label><input id="r-pagas" type="number" min="0" placeholder="0"></div>
+        <div class="form-group"><label>Total de Parcelas</label><input id="r-total" type="number" min="1" placeholder="12"></div>
+      </div>
+      <div class="form-group"><label>Observação</label><input id="r-obs" placeholder="Informação adicional"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-recebivel')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRecebivel()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Entrada -->
+<div class="overlay" id="modal-entrada">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="met-title">📈 Cadastrar Fonte de Renda</div><button class="modal-close" onclick="closeModal('modal-entrada')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="e-id">
+      <div class="form-row">
+        <div class="form-group"><label>Nome da Fonte</label><input id="e-nome" placeholder="Ex: Loja de Bebida 1"></div>
+        <div class="form-group"><label>Categoria</label>
+          <select id="e-cat">
+            <option>Loja / Comércio</option><option>Salário</option><option>Aluguel</option>
+            <option>Venda de Veículo</option><option>Construção / Obra</option>
+            <option>Parcelas a Receber</option><option>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Observação</label><input id="e-obs" placeholder="Descrição adicional"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-entrada')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEntrada()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Saída -->
+<div class="overlay" id="modal-saida">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="mst-title">📉 Cadastrar Saída</div><button class="modal-close" onclick="closeModal('modal-saida')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="s-id">
+      <div class="form-row">
+        <div class="form-group"><label>Descrição</label><input id="s-nome" placeholder="Ex: Cartão de Crédito"></div>
+        <div class="form-group"><label>Categoria</label>
+          <select id="s-cat">
+            <option>Cartão de Crédito</option><option>Empréstimo</option><option>Prestação / Financiamento</option>
+            <option>Aluguel Loja</option><option>Folha de Pagamento</option><option>Fornecedor</option>
+            <option>Impostos</option><option>Cheque</option><option>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Dia de Vencimento</label><input id="s-dia" type="number" min="1" max="31" placeholder="Ex: 10"></div>
+        <div class="form-group"><label>Saldo Total Devedor (R$)</label><input id="s-saldo" type="number" placeholder="0 se for fixo"></div>
+      </div>
+      <div class="form-group"><label>Observação</label><input id="s-obs" placeholder="Opcional"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-saida')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSaida()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Dívida -->
+<div class="overlay" id="modal-divida">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="mdt-title">⚠️ Cadastrar Dívida</div><button class="modal-close" onclick="closeModal('modal-divida')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="d-id">
+      <div class="form-row">
+        <div class="form-group"><label>Nome da Dívida</label><input id="d-nome" placeholder="Ex: Empréstimo Banco X"></div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="d-tipo"><option>Empréstimo</option><option>Cartão de Crédito</option><option>Cheque Especial</option><option>Prestação</option><option>Financiamento</option><option>Outro</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Valor Total (R$)</label><input id="d-valor" type="number" placeholder="0"></div>
+        <div class="form-group"><label>Taxa de Juros (% ao mês)</label><input id="d-juros" type="number" step="0.1" placeholder="Ex: 2"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Parcela Mensal (R$)</label><input id="d-parcela" type="number" placeholder="0"></div>
+        <div class="form-group"><label>Vencimento Final</label><input id="d-venc" type="month"></div>
+      </div>
+      <div class="form-group"><label>Observação</label><input id="d-obs" placeholder="Opcional"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-divida')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDivida()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Meta -->
+<div class="overlay" id="modal-meta">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="mmt-title">🎯 Meta Financeira</div><button class="modal-close" onclick="closeModal('modal-meta')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="m-id">
+      <div class="form-group"><label>Nome da Meta</label><input id="m-nome" placeholder="Ex: Casa na Barragem"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Valor Necessário (R$)</label><input id="m-total" type="number" placeholder="350000"></div>
+        <div class="form-group"><label>Já Guardado (R$)</label><input id="m-atual" type="number" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Prazo Desejado</label><input id="m-prazo" type="month"></div>
+        <div class="form-group"><label>Ícone (emoji)</label><input id="m-icon" placeholder="🏠" maxlength="4"></div>
+      </div>
+      <div class="form-group"><label>Observação</label><input id="m-obs" placeholder="Detalhe da meta"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-meta')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveMeta()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Cheque -->
+<div class="overlay" id="modal-cheque">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="mct-title">📋 Cheque</div><button class="modal-close" onclick="closeModal('modal-cheque')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="c-id">
+      <div class="form-row">
+        <div class="form-group"><label>Favorecido / Referência</label><input id="c-fav" placeholder="Ex: Fornecedor ABC"></div>
+        <div class="form-group"><label>Banco / Conta</label><input id="c-banco" placeholder="Ex: Bradesco"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Valor (R$)</label><input id="c-valor" type="number" placeholder="0"></div>
+        <div class="form-group"><label>Vencimento</label><input id="c-venc" type="date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status</label>
+          <select id="c-status"><option value="pendente">Pendente</option><option value="coberto">Coberto</option><option value="devolvido">Devolvido</option></select>
+        </div>
+        <div class="form-group"><label>Observação</label><input id="c-obs" placeholder="Opcional"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cheque')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCheque()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let state = JSON.parse(localStorage.getItem('fincontrol2') || '{}');
+['recebiveis','entradas','saidas','dividas','metas','cheques'].forEach(k => { if(!state[k]) state[k] = []; });
+
+function save(){ localStorage.setItem('fincontrol2', JSON.stringify(state)); }
+function fmt(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtPct(v){ return Number(v||0).toFixed(1)+'%'; }
+function monthLabel(ym){ const [y,m]=ym.split('-'); const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; return months[parseInt(m)-1]+'/'+y.slice(2); }
+function currentYM(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+
+// Helper: média dos últimos N meses de um array de historico [{ym, valor}]
+function avgLast(hist, n){
+  if(!hist||hist.length===0) return 0;
+  const sorted=[...hist].sort((a,b)=>b.ym.localeCompare(a.ym));
+  const slice=sorted.slice(0,n);
+  return slice.reduce((s,h)=>s+h.valor,0)/slice.length;
+}
+function lastVal(hist){
+  if(!hist||hist.length===0) return null;
+  const sorted=[...hist].sort((a,b)=>b.ym.localeCompare(a.ym));
+  return sorted[0].valor;
+}
+
+// ===== NAV =====
+function showSection(id, el){
+  document.querySelectorAll('[id^="sec-"]').forEach(e=>e.classList.add('section-hidden'));
+  document.getElementById('sec-'+id).classList.remove('section-hidden');
+  document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+// ===== MODAL =====
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click',e=>{ if(e.target.classList.contains('overlay')) e.target.classList.remove('open'); });
+
+// ===== TOGGLE HISTORY ROW =====
+function toggleHistory(type, id){
+  const rowId = 'hist-'+type+'-'+id;
+  const existing = document.getElementById(rowId);
+  if(existing){ existing.remove(); return; }
+  const item = state[type].find(x=>x.id===id);
+  if(!item) return;
+  const hist = item.historico || [];
+  const sorted = [...hist].sort((a,b)=>b.ym.localeCompare(a.ym));
+
+  const tr = document.createElement('tr');
+  tr.id = rowId;
+  tr.className = 'history-row';
+  const colCount = type==='entradas' ? 8 : 8;
+  tr.innerHTML = `<td colspan="${colCount}">
+    <div class="history-inner">
+      <div class="history-title">📅 Histórico de Lançamentos — ${item.nome||item.desc||''}</div>
+      <div class="history-months" id="hm-${type}-${id}">
+        ${sorted.length===0?'<span style="color:var(--text3);font-size:11px">Nenhum lançamento ainda</span>':
+          sorted.map(h=>`<div class="month-chip">
+            <span class="mc-label">${monthLabel(h.ym)}</span>
+            <span class="mc-val">${fmt(h.valor)}</span>
+            <button class="mc-del" onclick="delHist('${type}',${id},'${h.ym}')" title="Remover">×</button>
+          </div>`).join('')}
+      </div>
+      <div class="add-month">
+        <select id="sel-ym-${type}-${id}" style="width:130px">
+          ${generateMonthOptions()}
+        </select>
+        <input type="number" id="inp-val-${type}-${id}" placeholder="R$ valor" style="width:130px">
+        <button class="btn btn-primary btn-sm" onclick="addHist('${type}',${id})">+ Lançar</button>
+      </div>
+      ${hist.length>0?`<div class="stats-row">
+        <span class="stat-chip">Último: <strong class="green">${fmt(lastVal(hist))}</strong></span>
+        ${hist.length>=3?`<span class="stat-chip">Média 3m: <strong>${fmt(avgLast(hist,3))}</strong></span>`:''}
+        ${hist.length>=6?`<span class="stat-chip">Média 6m: <strong>${fmt(avgLast(hist,6))}</strong></span>`:''}
+        <span class="stat-chip">Meses: <strong>${hist.length}</strong></span>
+      </div>`:''}
+    </div>
+  </td>`;
+
+  const refRow = document.getElementById('row-'+type+'-'+id);
+  if(refRow) refRow.after(tr);
+}
+
+function generateMonthOptions(){
+  const opts = [];
+  const now = new Date();
+  for(let i=0;i<24;i++){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    opts.push(`<option value="${ym}">${monthLabel(ym)}</option>`);
+  }
+  return opts.join('');
+}
+
+function addHist(type, id){
+  const ym = document.getElementById('sel-ym-'+type+'-'+id).value;
+  const val = parseFloat(document.getElementById('inp-val-'+type+'-'+id).value);
+  if(!ym||isNaN(val)||val<0) return alert('Informe o valor corretamente');
+  const item = state[type].find(x=>x.id===id);
+  if(!item) return;
+  if(!item.historico) item.historico=[];
+  // substitui se já existir aquele mês
+  const idx = item.historico.findIndex(h=>h.ym===ym);
+  if(idx>=0) item.historico[idx].valor=val; else item.historico.push({ym,valor:val});
+  save();
+  // re-open to refresh
+  document.getElementById('hist-'+type+'-'+id)?.remove();
+  toggleHistory(type,id);
+  render();
+}
+
+function delHist(type, id, ym){
+  const item = state[type].find(x=>x.id===id);
+  if(!item) return;
+  item.historico = (item.historico||[]).filter(h=>h.ym!==ym);
+  save();
+  document.getElementById('hist-'+type+'-'+id)?.remove();
+  toggleHistory(type,id);
+  render();
+}
+
+// ===== CRUD HELPERS =====
+function getVal(id){ return document.getElementById(id)?.value||''; }
+function setVal(id,v){ const el=document.getElementById(id); if(el) el.value=v||''; }
+function clearForm(ids){ ids.forEach(id=>setVal(id,'')); }
+
+// ===== RECEBIVEIS =====
+function openEditRecebivel(id){
+  const item = state.recebiveis.find(x=>x.id===id);
+  if(!item) return;
+  document.getElementById('mrt-title').textContent='✏️ Editar A Receber';
+  setVal('r-id',item.id); setVal('r-devedor',item.devedor); setVal('r-desc',item.desc);
+  setVal('r-valor',item.valor); setVal('r-dia',item.dia);
+  setVal('r-pagas',item.pagas); setVal('r-total',item.total); setVal('r-obs',item.obs);
+  openModal('modal-recebivel');
+}
+function saveRecebivel(){
+  const devedor=getVal('r-devedor').trim(), valor=parseFloat(getVal('r-valor')), total=parseInt(getVal('r-total'));
+  if(!devedor||!valor||!total) return alert('Preencha devedor, valor e total de parcelas');
+  const editId=getVal('r-id');
+  const obj={ devedor, desc:getVal('r-desc'), valor, dia:parseInt(getVal('r-dia'))||1, pagas:parseInt(getVal('r-pagas'))||0, total, obs:getVal('r-obs') };
+  if(editId){ const idx=state.recebiveis.findIndex(x=>x.id==editId); if(idx>=0){ obj.id=parseInt(editId); state.recebiveis[idx]={...state.recebiveis[idx],...obj}; } }
+  else { obj.id=Date.now(); state.recebiveis.push(obj); }
+  save(); closeModal('modal-recebivel');
+  clearForm(['r-id','r-devedor','r-desc','r-valor','r-dia','r-pagas','r-total','r-obs']);
+  document.getElementById('mrt-title').textContent='💰 Cadastrar A Receber';
+  render();
+}
+
+// ===== ENTRADAS =====
+function openEditEntrada(id){
+  const item=state.entradas.find(x=>x.id===id); if(!item) return;
+  document.getElementById('met-title').textContent='✏️ Editar Fonte de Renda';
+  setVal('e-id',item.id); setVal('e-nome',item.nome); setVal('e-obs',item.obs);
+  document.getElementById('e-cat').value=item.cat||'Loja / Comércio';
+  openModal('modal-entrada');
+}
+function saveEntrada(){
+  const nome=getVal('e-nome').trim(); if(!nome) return alert('Informe o nome da fonte');
+  const editId=getVal('e-id');
+  const obj={ nome, cat:getVal('e-cat')||document.getElementById('e-cat').value, obs:getVal('e-obs') };
+  if(editId){ const idx=state.entradas.findIndex(x=>x.id==editId); if(idx>=0){ obj.id=parseInt(editId); state.entradas[idx]={...state.entradas[idx],...obj}; } }
+  else { obj.id=Date.now(); obj.historico=[]; state.entradas.push(obj); }
+  save(); closeModal('modal-entrada');
+  clearForm(['e-id','e-nome','e-obs']);
+  document.getElementById('met-title').textContent='📈 Cadastrar Fonte de Renda';
+  render();
+}
+
+// ===== SAÍDAS =====
+function openEditSaida(id){
+  const item=state.saidas.find(x=>x.id===id); if(!item) return;
+  document.getElementById('mst-title').textContent='✏️ Editar Saída';
+  setVal('s-id',item.id); setVal('s-nome',item.nome); setVal('s-dia',item.dia);
+  setVal('s-saldo',item.saldo); setVal('s-obs',item.obs);
+  document.getElementById('s-cat').value=item.cat||'Cartão de Crédito';
+  openModal('modal-saida');
+}
+function saveSaida(){
+  const nome=getVal('s-nome').trim(); if(!nome) return alert('Informe a descrição');
+  const editId=getVal('s-id');
+  const obj={ nome, cat:document.getElementById('s-cat').value, dia:parseInt(getVal('s-dia'))||1, saldo:parseFloat(getVal('s-saldo'))||0, obs:getVal('s-obs') };
+  if(editId){ const idx=state.saidas.findIndex(x=>x.id==editId); if(idx>=0){ obj.id=parseInt(editId); state.saidas[idx]={...state.saidas[idx],...obj}; } }
+  else { obj.id=Date.now(); obj.historico=[]; state.saidas.push(obj); }
+  save(); closeModal('modal-saida');
+  clearForm(['s-id','s-nome','s-dia','s-saldo','s-obs']);
+  document.getElementById('mst-title').textContent='📉 Cadastrar Saída';
+  render();
+}
+
+// ===== DÍVIDAS =====
+function openEditDivida(id){
+  const item=state.dividas.find(x=>x.id===id); if(!item) return;
+  document.getElementById('mdt-title').textContent='✏️ Editar Dívida';
+  setVal('d-id',item.id); setVal('d-nome',item.nome); setVal('d-valor',item.valor);
+  setVal('d-juros',item.juros); setVal('d-parcela',item.parcela); setVal('d-venc',item.venc); setVal('d-obs',item.obs);
+  document.getElementById('d-tipo').value=item.tipo||'Empréstimo';
+  openModal('modal-divida');
+}
+function saveDivida(){
+  const nome=getVal('d-nome').trim(), valor=parseFloat(getVal('d-valor')); if(!nome||!valor) return alert('Preencha nome e valor');
+  const editId=getVal('d-id');
+  const obj={ nome, tipo:document.getElementById('d-tipo').value, valor, juros:parseFloat(getVal('d-juros'))||0, parcela:parseFloat(getVal('d-parcela'))||0, venc:getVal('d-venc'), obs:getVal('d-obs') };
+  if(editId){ const idx=state.dividas.findIndex(x=>x.id==editId); if(idx>=0){ obj.id=parseInt(editId); state.dividas[idx]={...state.dividas[idx],...obj}; } }
+  else { obj.id=Date.now(); state.dividas.push(obj); }
+  save(); closeModal('modal-divida');
+  clearForm(['d-id','d-nome','d-valor','d-juros','d-parcela','d-venc','d-obs']);
+  document.getElementById('mdt-title').textContent='⚠️ Cadastrar Dívida';
+  render();
+}
+
+// ===== METAS =====
+function openEditMeta(id){
+  const item=state.metas.find(x=>x.id===id); if(!item) return;
+  document.getElementById('mmt-title').textContent='✏️ Editar Meta';
+  setVal('m-id',item.id); setVal('m-nome',item.nome); setVal('m-total',item.total);
+  setVal('m-atual',item.atual); setVal('m-prazo',item.prazo); setVal('m-icon',item.icon); setVal('m-obs',item.obs);
+  openModal('modal-meta');
+}
+function saveMeta(){
+  const nome=getVal('m-nome').trim(), total=parseFloat(getVal('m-total')); if(!nome||!total) return alert('Preencha nome e valor necessário');
+  const editId=getVal('m-id');
+  const obj={ nome, total, atual:parseFloat(getVal('m-atual'))||0, prazo:getVal('m-prazo'), icon:getVal('m-icon')||'🎯', obs:getVal('m-obs') };
+  if(editId){ const idx=state.metas.findIndex(x=>x.id==editId); if(idx>=0){ obj.id=parseInt(editId); state.metas[idx]={...state.metas[idx],...obj}; } }
+  else { obj.id=Date.now(); state.metas.push(obj); }
+  save(); closeModal('modal-meta');
+  clearForm(['m-id','m-nome','m-total','m-atual','m-prazo','m-icon','m-obs']);
+  document.getElementById('mmt-title').textContent='🎯 Meta Financeira';
+  render();
+}
+
+// ===== CHEQUES =====
+function openEditCheque(id){
+  const item=state.cheques.find(x=>x.id===id); if(!item) return;
+  document.getElementById('mct-title').textContent='✏️ Editar Cheque';
+  setVal('c-id',item.id); setVal('c-fav',item.fav); setVal('c-banco',item.banco);
+  setVal('c-valor',item.valor); setVal('c-venc',item.venc); setVal('c-obs',item.obs);
+  document.getElementById('c-status').value=item.status||'pendente';
+  openModal('modal-cheque');
+}
+function saveCheque(){
+  const fav=getVal('c-fav').trim(), valor=parseFloat(getVal('c-valor')); if(!fav||!valor) return alert('Informe favorecido e valor');
+  const editId=getVal('c-id');
+  const obj={ fav, banco:getVal('c-banco'), valor, venc:getVal('c-venc'), status:document.getElementById('c-status').value, obs:getVal('c-obs') };
+  if(editId){ const idx=state.cheques.findIndex(x=>x.id==editId); if(idx>=0){ obj.id=parseInt(editId); state.cheques[idx]={...state.cheques[idx],...obj}; } }
+  else { obj.id=Date.now(); state.cheques.push(obj); }
+  save(); closeModal('modal-cheque');
+  clearForm(['c-id','c-fav','c-banco','c-valor','c-venc','c-obs']);
+  document.getElementById('mct-title').textContent='📋 Cheque';
+  render();
+}
+
+// ===== DELETE =====
+function delItem(arr, id){
+  if(!confirm('Remover este item?')) return;
+  state[arr]=state[arr].filter(x=>x.id!==id);
+  save(); render();
+}
+
+// ===== RENDER =====
+function render(){
+  renderDashboard(); renderRecebiveis(); renderEntradas(); renderSaidas();
+  renderDividas(); renderMetas(); renderCheques();
+}
+
+function calcTotalEntradas(){
+  // usa média de 3 meses de cada fonte, ou 0 se sem histórico
+  return state.entradas.reduce((s,e)=>{
+    const h=e.historico||[];
+    return s+(h.length>0?avgLast(h,3):0);
+  },0);
+}
+function calcTotalSaidas(){
+  return state.saidas.reduce((s,ss)=>{
+    const h=ss.historico||[];
+    return s+(h.length>0?avgLast(h,3):0);
+  },0);
+}
+
+function renderDashboard(){
+  const totalReceber=state.recebiveis.reduce((s,r)=>s+r.valor*(r.total-r.pagas),0);
+  const totalEntradas=calcTotalEntradas();
+  const totalSaidas=calcTotalSaidas();
+  const saldo=totalEntradas-totalSaidas;
+
+  document.getElementById('sum-recebiveis').textContent=fmt(totalReceber);
+  document.getElementById('sum-recebiveis-count').textContent=state.recebiveis.length+' devedores';
+  document.getElementById('sum-entradas').textContent=fmt(totalEntradas);
+  document.getElementById('sum-entradas-count').textContent=state.entradas.length+' fontes';
+  document.getElementById('sum-saidas').textContent=fmt(totalSaidas);
+  document.getElementById('sum-saidas-count').textContent=state.saidas.length+' compromissos';
+  const sEl=document.getElementById('sum-saldo');
+  sEl.textContent=fmt(saldo); sEl.className='value '+(saldo>=0?'green':'red');
+
+  const today=new Date().getDate();
+  const sorted=[...state.saidas].sort((a,b)=>{
+    const da=a.dia>=today?a.dia:a.dia+31, db=b.dia>=today?b.dia:b.dia+31; return da-db;
+  }).slice(0,6);
+  const vEl=document.getElementById('dash-vencimentos');
+  if(sorted.length===0){ vEl.innerHTML='<div class="empty"><div class="emoji">🗓️</div>Sem saídas cadastradas</div>'; }
+  else {
+    vEl.innerHTML='<table><tbody>'+sorted.map(s=>{
+      const h=s.historico||[], v=h.length>0?avgLast(h,1):0;
+      const diff=s.dia-today;
+      const badge=diff<0?'<span class="badge badge-red">Venceu</span>':diff===0?'<span class="badge badge-yellow">Hoje</span>':'<span class="badge badge-blue">Dia '+s.dia+'</span>';
+      return `<tr><td>${s.nome}</td><td>${badge}</td><td class="red">${v>0?fmt(v):'—'}</td></tr>`;
+    }).join('')+'</tbody></table>';
+  }
+
+  const divSorted=[...state.dividas].sort((a,b)=>b.juros-a.juros).slice(0,3);
+  const dEl=document.getElementById('dash-dividas');
+  if(divSorted.length===0){ dEl.innerHTML='<div class="empty"><div class="emoji">✅</div>Sem dívidas</div>'; }
+  else { dEl.innerHTML='<table><tbody>'+divSorted.map((d,i)=>`<tr><td><span style="font-weight:700;color:${i===0?'var(--danger)':i===1?'var(--warning)':'var(--accent)'}">#${i+1}</span> ${d.nome}</td><td class="red">${fmtPct(d.juros)}/mês</td><td class="red">${fmt(d.valor)}</td></tr>`).join('')+'</tbody></table>'; }
+}
+
+function renderRecebiveis(){
+  const tb=document.getElementById('tb-recebiveis');
+  if(state.recebiveis.length===0){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhum cadastrado</td></tr>'; return; }
+  const today=new Date().getDate();
+  tb.innerHTML=state.recebiveis.map(r=>{
+    const restantes=r.total-r.pagas, totalRestante=r.valor*restantes, diff=r.dia-today;
+    let statusBadge=diff<0?'<span class="badge badge-red">Vencido</span>':diff<=3?'<span class="badge badge-yellow">Próximo</span>':'<span class="badge badge-green">OK</span>';
+    if(restantes===0) statusBadge='<span class="badge badge-green">Quitado ✓</span>';
+    return `<tr id="row-recebiveis-${r.id}" class="${diff<0&&restantes>0?'overdue':''}">
+      <td><strong>${r.devedor}</strong></td><td>${r.desc||'—'}</td><td>Dia ${r.dia}</td>
+      <td class="green">${fmt(r.valor)}</td><td>${r.pagas}/${r.total}</td>
+      <td class="green">${fmt(totalRestante)}</td><td>${statusBadge}</td>
+      <td><div class="action-btns">
+        <button class="btn btn-edit btn-sm" onclick="openEditRecebivel(${r.id})">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="delItem('recebiveis',${r.id})">×</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderEntradas(){
+  const tb=document.getElementById('tb-entradas');
+  const cats={'Loja / Comércio':'badge-green','Salário':'badge-blue','Aluguel':'badge-yellow','Venda de Veículo':'badge-green','Construção / Obra':'badge-green','Parcelas a Receber':'badge-blue','Outro':'badge-blue'};
+  if(state.entradas.length===0){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhuma entrada cadastrada</td></tr>'; return; }
+  tb.innerHTML=state.entradas.map(e=>{
+    const h=e.historico||[];
+    const ultimo=h.length>0?lastVal(h):null;
+    const avg3=h.length>=3?avgLast(h,3):null;
+    const avg6=h.length>=6?avgLast(h,6):null;
+    return `<tr id="row-entradas-${e.id}">
+      <td><button class="btn btn-ghost btn-sm" onclick="toggleHistory('entradas',${e.id})" title="Ver histórico">▶</button></td>
+      <td><strong>${e.nome}</strong>${e.obs?'<br><span style="color:var(--text3);font-size:10px">'+e.obs+'</span>':''}</td>
+      <td><span class="badge ${cats[e.cat]||'badge-blue'}">${e.cat}</span></td>
+      <td class="green">${ultimo!==null?fmt(ultimo):'<span style="color:var(--text3)">—</span>'}</td>
+      <td>${avg3!==null?fmt(avg3):'<span style="color:var(--text3)">—</span>'}</td>
+      <td>${avg6!==null?fmt(avg6):'<span style="color:var(--text3)">—</span>'}</td>
+      <td>${h.length} ${h.length===1?'mês':'meses'}</td>
+      <td><div class="action-btns">
+        <button class="btn btn-edit btn-sm" onclick="openEditEntrada(${e.id})">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="delItem('entradas',${e.id})">×</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSaidas(){
+  const tb=document.getElementById('tb-saidas');
+  if(state.saidas.length===0){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhuma saída cadastrada</td></tr>'; return; }
+  tb.innerHTML=state.saidas.map(s=>{
+    const h=s.historico||[];
+    const ultimo=h.length>0?lastVal(h):null;
+    const avg3=h.length>=3?avgLast(h,3):null;
+    return `<tr id="row-saidas-${s.id}">
+      <td><button class="btn btn-ghost btn-sm" onclick="toggleHistory('saidas',${s.id})" title="Ver histórico">▶</button></td>
+      <td><strong>${s.nome}</strong></td>
+      <td>${s.cat}</td>
+      <td class="red">${ultimo!==null?fmt(ultimo):'<span style="color:var(--text3)">—</span>'}</td>
+      <td>${avg3!==null?fmt(avg3):'<span style="color:var(--text3)">—</span>'}</td>
+      <td>Dia ${s.dia}</td>
+      <td>${s.saldo>0?fmt(s.saldo):'—'}</td>
+      <td><div class="action-btns">
+        <button class="btn btn-edit btn-sm" onclick="openEditSaida(${s.id})">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="delItem('saidas',${s.id})">×</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDividas(){
+  const sorted=[...state.dividas].sort((a,b)=>b.juros-a.juros);
+  const totalDiv=sorted.reduce((s,d)=>s+d.valor,0);
+  document.getElementById('total-dividas').textContent='Total: '+fmt(totalDiv);
+  const el=document.getElementById('ranking-dividas');
+  if(sorted.length===0){ el.innerHTML='<div class="empty"><div class="emoji">✅</div>Nenhuma dívida</div>'; return; }
+  const colors=['var(--danger)','var(--warning)','var(--accent)'];
+  el.innerHTML=sorted.map((d,i)=>{
+    const rankClass=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+    const color=colors[i]||'var(--text2)';
+    const pct=totalDiv>0?(d.valor/totalDiv*100).toFixed(0):0;
+    return `<div class="debt-item">
+      <div class="rank-num ${rankClass}">${i+1}</div>
+      <div class="debt-info">
+        <div class="debt-name">${d.nome} <span style="color:var(--text2);font-size:11px">(${d.tipo})</span></div>
+        <div class="debt-detail">${d.juros>0?'Juros: '+fmtPct(d.juros)+'/mês':'Sem juros'}${d.parcela>0?' · Parcela: '+fmt(d.parcela):''}${d.venc?' · Vence: '+d.venc:''}</div>
+        ${d.obs?`<div class="debt-detail" style="margin-top:3px">${d.obs}</div>`:''}
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+      <div class="debt-amount">
+        <div class="debt-total red">${fmt(d.valor)}</div>
+        <div class="debt-rate">${pct}% do total</div>
+        <div class="action-btns" style="margin-top:8px;justify-content:flex-end">
+          <button class="btn btn-edit btn-sm" onclick="openEditDivida(${d.id})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="delItem('dividas',${d.id})">×</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMetas(){
+  const el=document.getElementById('grid-metas');
+  if(state.metas.length===0){ el.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="emoji">🎯</div>Nenhuma meta cadastrada</div>'; return; }
+  el.innerHTML=state.metas.map(m=>{
+    const pct=Math.min(100,m.atual/m.total*100), falta=m.total-m.atual;
+    return `<div class="goal-card">
+      <div class="goal-name">${m.icon} ${m.nome}</div>
+      <div class="goal-sub">${m.obs||''}${m.prazo?' · Prazo: '+m.prazo:''}</div>
+      <div class="goal-amounts">
+        <span>Guardado<br><strong class="green">${fmt(m.atual)}</strong></span>
+        <span style="text-align:center">Progresso<br><strong>${pct.toFixed(0)}%</strong></span>
+        <span style="text-align:right">Falta<br><strong class="red">${fmt(falta)}</strong></span>
+      </div>
+      <div class="progress-bar" style="height:6px"><div class="progress-fill" style="width:${pct}%;background:var(--accent3)"></div></div>
+      <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--text2)">Meta: ${fmt(m.total)}</span>
+        <div class="action-btns">
+          <button class="btn btn-edit btn-sm" onclick="openEditMeta(${m.id})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="delItem('metas',${m.id})">×</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderCheques(){
+  const tb=document.getElementById('tb-cheques');
+  if(state.cheques.length===0){ tb.innerHTML='<tr><td colspan="6" class="empty">Nenhum cheque cadastrado</td></tr>'; return; }
+  const today=new Date().toISOString().split('T')[0];
+  tb.innerHTML=state.cheques.map(c=>{
+    const overdue=c.venc&&c.venc<today&&c.status==='pendente';
+    const badge=c.status==='coberto'?'<span class="badge badge-green">Coberto ✓</span>':c.status==='devolvido'?'<span class="badge badge-red">Devolvido</span>':overdue?'<span class="badge badge-red">Vencido</span>':'<span class="badge badge-yellow">Pendente</span>';
+    return `<tr id="row-cheques-${c.id}" class="${overdue?'overdue':''}">
+      <td><strong>${c.fav}</strong></td>
+      <td class="red">${fmt(c.valor)}</td>
+      <td>${c.venc||'—'}</td>
+      <td>${c.banco||'—'}</td>
+      <td>${badge}</td>
+      <td><div class="action-btns">
+        <button class="btn btn-edit btn-sm" onclick="openEditCheque(${c.id})">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="delItem('cheques',${c.id})">×</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== INIT =====
+document.getElementById('current-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+
+// Migrar dados antigos se existirem
+const old=localStorage.getItem('fincontrol');
+if(old && state.entradas.length===0){
+  try{
+    const o=JSON.parse(old);
+    if(o.recebiveis) state.recebiveis=o.recebiveis;
+    if(o.dividas) state.dividas=o.dividas;
+    if(o.metas) state.metas=o.metas;
+    if(o.cheques) state.cheques=o.cheques;
+    if(o.saidas) state.saidas=o.saidas.map(s=>({...s,historico:[]}));
+    if(o.entradas) state.entradas=o.entradas.map(e=>({...e,historico:[{ym:currentYM(),valor:e.valor}]}));
+    save();
+  }catch(e){}
+}
+
+// Pré-carregar dados do Kelvin se ainda vazio
+if(state.entradas.length===0){
+  const ym=currentYM();
+  state.entradas=[
+    {id:1,nome:'Loja de Bebida 1',cat:'Loja / Comércio',obs:'Faturamento ~80k',historico:[{ym,valor:15000}]},
+    {id:2,nome:'Salário Policial',cat:'Salário',obs:'',historico:[{ym,valor:9000}]},
+    {id:3,nome:'Loja de Maquiagem',cat:'Loja / Comércio',obs:'Faturamento ~25k',historico:[{ym,valor:6000}]},
+    {id:4,nome:'Loja de Bebida 2',cat:'Loja / Comércio',obs:'Faturamento ~30k',historico:[{ym,valor:3000}]},
+    {id:5,nome:'Aluguel Recebido',cat:'Aluguel',obs:'',historico:[{ym,valor:5000}]},
+  ];
+  save();
+}
+
+render();
+</script>
+</body>
+</html>
