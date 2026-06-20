@@ -283,8 +283,8 @@
     </div>
     <div class="content">
       <div class="card"><div class="card-body">
-        <table><thead><tr><th></th><th>Descrição</th><th>Categoria</th><th>Último Mês</th><th>Média (3m)</th><th>Dia Venc.</th><th>Saldo Devedor</th><th>Ações</th></tr></thead>
-        <tbody id="tb-saidas"><tr><td colspan="8" class="empty">Nenhuma saída cadastrada</td></tr></tbody></table>
+        <table><thead><tr><th></th><th>Descrição</th><th>Categoria</th><th>Recorrência</th><th>Último Mês</th><th>Média (3m)</th><th>Dia Venc.</th><th>Saldo Devedor</th><th>Ações</th></tr></thead>
+        <tbody id="tb-saidas"><tr><td colspan="9" class="empty">Nenhuma saída cadastrada</td></tr></tbody></table>
       </div></div>
     </div>
   </div>
@@ -419,6 +419,36 @@
         <div class="form-group"><label>Dia de Vencimento</label><input id="s-dia" type="number" min="1" max="31" placeholder="Ex: 10"></div>
         <div class="form-group"><label>Saldo Total Devedor (R$)</label><input id="s-saldo" type="number" placeholder="0 se for fixo"></div>
       </div>
+
+      <!-- RECORRÊNCIA -->
+      <div style="background:rgba(123,140,255,.07);border:1px solid rgba(123,140,255,.2);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:11px;color:var(--accent3);letter-spacing:.5px;margin-bottom:10px;font-weight:600;">🔁 RECORRÊNCIA</div>
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Tipo</label>
+            <select id="s-rectype" onchange="onRecTypeChange()">
+              <option value="fixa">Fixa (sem prazo)</option>
+              <option value="meses">Por número de meses</option>
+              <option value="ate">Até mês específico</option>
+              <option value="pontual">Pontual (1x só)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label>Início</label>
+            <input id="s-inicio" type="month" placeholder="Mês de início">
+          </div>
+        </div>
+        <div id="s-rec-meses-row" class="form-group" style="margin-bottom:0;display:none">
+          <label>Quantidade de Meses</label>
+          <input id="s-meses" type="number" min="1" max="360" placeholder="Ex: 12 (1 ano)">
+        </div>
+        <div id="s-rec-ate-row" class="form-group" style="margin-bottom:0;display:none">
+          <label>Mês Final</label>
+          <input id="s-ate" type="month">
+        </div>
+        <div id="s-rec-info" style="font-size:11px;color:var(--text2);margin-top:8px;display:none"></div>
+      </div>
+
       <div class="form-group"><label>Observação</label><input id="s-obs" placeholder="Opcional"></div>
     </div>
     <div class="modal-footer">
@@ -880,22 +910,101 @@ function saveEntrada(){
 }
 
 // ===== SAÍDAS =====
+function onRecTypeChange(){
+  const t = document.getElementById('s-rectype').value;
+  document.getElementById('s-rec-meses-row').style.display = t==='meses'?'flex':'none';
+  document.getElementById('s-rec-ate-row').style.display = t==='ate'?'flex':'none';
+  updateRecInfo();
+}
+function updateRecInfo(){
+  const t = document.getElementById('s-rectype').value;
+  const inicio = document.getElementById('s-inicio').value;
+  const infoEl = document.getElementById('s-rec-info');
+  let msg = '';
+  if(t==='fixa'){ msg = '♾️ Saída fixa — aparece todo mês sem prazo definido.'; }
+  else if(t==='pontual'){ msg = '1️⃣ Pontual — aparece apenas no mês de início.'; }
+  else if(t==='meses'){
+    const n = parseInt(document.getElementById('s-meses').value)||0;
+    if(inicio && n>0){
+      const fim = addMonths(inicio, n-1);
+      msg = `📅 De ${monthLabel(inicio)} até ${monthLabel(fim)} (${n} meses)`;
+    }
+  } else if(t==='ate'){
+    const ate = document.getElementById('s-ate').value;
+    if(inicio && ate && ate>=inicio){
+      const meses = monthDiff(inicio,ate)+1;
+      msg = `📅 De ${monthLabel(inicio)} até ${monthLabel(ate)} (${meses} meses)`;
+    }
+  }
+  infoEl.style.display = msg?'block':'none';
+  infoEl.textContent = msg;
+}
+function addMonths(ym, n){
+  const [y,m] = ym.split('-').map(Number);
+  const d = new Date(y, m-1+n, 1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+function monthDiff(a, b){
+  const [ay,am] = a.split('-').map(Number);
+  const [by,bm] = b.split('-').map(Number);
+  return (by-ay)*12+(bm-am);
+}
+function isSaidaAtiva(s){
+  const ym = currentYM();
+  const t = s.rectype||'fixa';
+  const inicio = s.inicio||'2000-01';
+  if(ym < inicio) return false;
+  if(t==='fixa') return true;
+  if(t==='pontual') return ym===inicio;
+  if(t==='meses'){
+    const fim = addMonths(inicio,(s.meses||1)-1);
+    return ym<=fim;
+  }
+  if(t==='ate') return ym<=(s.ate||'2099-12');
+  return true;
+}
+function getSaidaFimLabel(s){
+  const t = s.rectype||'fixa';
+  if(t==='fixa') return null;
+  if(t==='pontual') return {label:'Pontual', fim:s.inicio||''};
+  if(t==='meses'){
+    const fim = addMonths(s.inicio||currentYM(),(s.meses||1)-1);
+    return {label:(s.meses||1)+'x', fim};
+  }
+  if(t==='ate') return {label:'Até '+monthLabel(s.ate||''), fim:s.ate||''};
+  return null;
+}
+
 function openEditSaida(id){
   const item=state.saidas.find(x=>x.id===id); if(!item) return;
   document.getElementById('mst-title').textContent='✏️ Editar Saída';
   setVal('s-id',item.id); setVal('s-nome',item.nome); setVal('s-dia',item.dia);
   setVal('s-saldo',item.saldo); setVal('s-obs',item.obs);
   document.getElementById('s-cat').value=item.cat||'Cartão de Crédito';
+  // recorrência
+  document.getElementById('s-rectype').value=item.rectype||'fixa';
+  setVal('s-inicio', item.inicio||currentYM());
+  setVal('s-meses', item.meses||'');
+  setVal('s-ate', item.ate||'');
+  onRecTypeChange();
   openModal('modal-saida');
 }
 function saveSaida(){
   const nome=getVal('s-nome').trim(); if(!nome) return alert('Informe a descrição');
   const editId=getVal('s-id');
-  const obj={ nome, cat:document.getElementById('s-cat').value, dia:parseInt(getVal('s-dia'))||1, saldo:parseFloat(getVal('s-saldo'))||0, obs:getVal('s-obs') };
+  const rectype = document.getElementById('s-rectype').value;
+  const inicio = getVal('s-inicio')||currentYM();
+  const meses = parseInt(getVal('s-meses'))||null;
+  const ate = getVal('s-ate')||null;
+  if(rectype==='meses'&&(!meses||meses<1)) return alert('Informe a quantidade de meses');
+  if(rectype==='ate'&&(!ate||ate<inicio)) return alert('Mês final deve ser após o início');
+  const obj={ nome, cat:document.getElementById('s-cat').value, dia:parseInt(getVal('s-dia'))||1, saldo:parseFloat(getVal('s-saldo'))||0, obs:getVal('s-obs'), rectype, inicio, meses, ate };
   if(editId){ const idx=state.saidas.findIndex(x=>x.id==editId); if(idx>=0){ obj.id=parseInt(editId); state.saidas[idx]={...state.saidas[idx],...obj}; } }
   else { obj.id=Date.now(); obj.historico=[]; state.saidas.push(obj); }
   save(); closeModal('modal-saida');
-  clearForm(['s-id','s-nome','s-dia','s-saldo','s-obs']);
+  clearForm(['s-id','s-nome','s-dia','s-saldo','s-obs','s-inicio','s-meses','s-ate']);
+  document.getElementById('s-rectype').value='fixa';
+  onRecTypeChange();
   document.getElementById('mst-title').textContent='📉 Cadastrar Saída';
   render();
 }
@@ -1012,7 +1121,7 @@ function calcTotalEntradas(){
   },0);
 }
 function calcTotalSaidas(){
-  return state.saidas.reduce((s,ss)=>{
+  return state.saidas.filter(s=>isSaidaAtiva(s)).reduce((s,ss)=>{
     const h=ss.historico||[];
     return s+(h.length>0?avgLast(h,3):0);
   },0);
@@ -1114,15 +1223,30 @@ function renderEntradas(){
 
 function renderSaidas(){
   const tb=document.getElementById('tb-saidas');
-  if(state.saidas.length===0){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhuma saída cadastrada</td></tr>'; return; }
-  tb.innerHTML=state.saidas.map(s=>{
+  if(state.saidas.length===0){ tb.innerHTML='<tr><td colspan="9" class="empty">Nenhuma saída cadastrada</td></tr>'; return; }
+
+  // Separar ativas e encerradas
+  const ativas = state.saidas.filter(s=>isSaidaAtiva(s));
+  const encerradas = state.saidas.filter(s=>!isSaidaAtiva(s));
+
+  function buildRow(s, inativa){
     const h=s.historico||[];
     const ultimo=h.length>0?lastVal(h):null;
     const avg3=h.length>=3?avgLast(h,3):null;
-    return `<tr id="row-saidas-${s.id}">
+    const fim = getSaidaFimLabel(s);
+    const recBadge = s.rectype==='fixa'||!s.rectype
+      ? '<span class="badge badge-blue">Fixa</span>'
+      : s.rectype==='pontual'
+        ? '<span class="badge badge-yellow">Pontual</span>'
+        : inativa
+          ? `<span class="badge badge-red">Encerrada</span>`
+          : `<span class="badge badge-yellow">${fim.label}</span>`;
+    const rowStyle = inativa ? 'opacity:.5;' : '';
+    return `<tr id="row-saidas-${s.id}" style="${rowStyle}">
       <td><button class="btn btn-ghost btn-sm" onclick="toggleHistory('saidas',${s.id})" title="Ver histórico">▶</button></td>
-      <td><strong>${s.nome}</strong></td>
+      <td><strong>${s.nome}</strong>${s.obs?'<br><span style="color:var(--text3);font-size:10px">'+s.obs+'</span>':''}</td>
       <td>${s.cat}</td>
+      <td>${recBadge}${fim&&!inativa?`<br><span style="color:var(--text3);font-size:10px">até ${monthLabel(fim.fim)}</span>`:''}${fim&&inativa?`<br><span style="color:var(--text3);font-size:10px">encerrou ${monthLabel(fim.fim)}</span>`:''}</td>
       <td class="red">${ultimo!==null?fmt(ultimo):'<span style="color:var(--text3)">—</span>'}</td>
       <td>${avg3!==null?fmt(avg3):'<span style="color:var(--text3)">—</span>'}</td>
       <td>Dia ${s.dia}</td>
@@ -1132,7 +1256,16 @@ function renderSaidas(){
         <button class="btn btn-danger btn-sm" onclick="delItem('saidas',${s.id})">×</button>
       </div></td>
     </tr>`;
-  }).join('');
+  }
+
+  let html = '';
+  if(ativas.length>0) html += ativas.map(s=>buildRow(s,false)).join('');
+  if(encerradas.length>0){
+    html += `<tr><td colspan="9" style="padding:8px 16px;background:rgba(255,255,255,.02);font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--border)">
+      ⏹ Encerradas (${encerradas.length})</td></tr>`;
+    html += encerradas.map(s=>buildRow(s,true)).join('');
+  }
+  tb.innerHTML = html || '<tr><td colspan="9" class="empty">Nenhuma saída cadastrada</td></tr>';
 }
 
 function renderDividas(){
@@ -1257,7 +1390,24 @@ if(state.entradas.length===0){
 }
 
 render();
-setTimeout(()=>{ setupChartTooltip(); },100);
+setTimeout(()=>{ 
+  setupChartTooltip();
+  // listeners para atualizar info de recorrência em tempo real
+  ['s-meses','s-ate','s-inicio'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('input', updateRecInfo);
+    document.getElementById(id)?.addEventListener('change', updateRecInfo);
+  });
+  // pré-preencher mês de início ao abrir modal de saída
+  const origOpen = window.openModal;
+  window.openModal = function(id){
+    origOpen(id);
+    if(id==='modal-saida'){
+      const si = document.getElementById('s-inicio');
+      if(si && !si.value) si.value = currentYM();
+      onRecTypeChange();
+    }
+  };
+}, 100);
 window.addEventListener('resize', ()=>{ renderChart(); });
 </script>
 </body>
