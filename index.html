@@ -128,14 +128,38 @@
   .action-btns{display:flex;gap:5px;}
 
   @media(max-width:900px){
-    .sidebar{display:none;} .main{margin-left:0;}
+    .sidebar{transform:translateX(-100%);transition:transform .25s ease;} 
+    .sidebar.open{transform:translateX(0);}
+    .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;}
+    .mobile-overlay.open{display:block;}
+    .main{margin-left:0;}
     .summary-grid{grid-template-columns:1fr 1fr;} .form-row{grid-template-columns:1fr;} .goals-grid{grid-template-columns:1fr;}
+    .hamburger{display:flex!important;}
   }
+  .hamburger{display:none;background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:7px 10px;cursor:pointer;font-size:16px;line-height:1;transition:all .2s;}
+  .hamburger:hover{color:var(--text);border-color:var(--text3);}
+  @media(max-width:900px){.hamburger{display:flex;}}
+  .mobile-overlay{display:none;}
+
+  /* Tooltip confirm delete */
+  .btn-confirm{background:rgba(255,77,109,.35)!important;border-color:var(--danger)!important;color:var(--danger)!important;animation:pulse-red .5s infinite alternate;}
+  @keyframes pulse-red{from{opacity:.8}to{opacity:1}}
+
+  /* Quick pay button */
+  .btn-pay{background:rgba(0,229,160,.15);color:var(--accent);border:1px solid rgba(0,229,160,.3);}
+  .btn-pay:hover{background:rgba(0,229,160,.3);}
+
+  /* Chart tooltip */
+  .chart-tooltip{position:absolute;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:11px;pointer-events:none;display:none;z-index:10;white-space:nowrap;min-width:140px;}
+
+  /* Import hidden input */
+  #import-file-input{display:none;}
 </style>
 </head>
 <body>
 
-<div class="sidebar">
+<div class="mobile-overlay" id="mobile-overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
   <div class="logo">FinControl <span>gestão financeira</span></div>
   <nav class="nav">
     <div class="nav-item active" onclick="showSection('dashboard',this)">📊 Dashboard</div>
@@ -146,14 +170,26 @@
     <div class="nav-item" onclick="showSection('metas',this)">🎯 Metas</div>
     <div class="nav-item" onclick="showSection('cheques',this)">📋 Cheques</div>
   </nav>
+  <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:8px;">
+    <button class="btn btn-ghost btn-sm" onclick="exportData()" title="Exportar backup JSON" style="flex:1">💾 Export</button>
+    <button class="btn btn-warning btn-sm" onclick="importData()" title="Importar backup JSON" style="flex:1">📂 Import</button>
+  </div>
 </div>
 
 <div class="main">
 
+  <!-- ALERT BANNER -->
+  <div id="alert-banner" style="display:none;background:rgba(255,77,109,.1);border-bottom:1px solid rgba(255,77,109,.3);padding:10px 32px;font-size:12px;color:var(--danger);cursor:pointer;" onclick="showSection('cheques',document.querySelectorAll('.nav-item')[6])">
+    <span id="alert-text"></span>
+  </div>
+
   <!-- DASHBOARD -->
   <div id="sec-dashboard">
     <div class="topbar">
-      <div class="page-title">Dashboard <span>visão geral</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <div class="page-title">Dashboard <span>visão geral</span></div>
+      </div>
       <div style="font-size:12px;color:var(--text2)" id="current-date"></div>
     </div>
     <div class="content">
@@ -163,6 +199,27 @@
         <div class="sum-card"><div class="label">Saídas/Mês</div><div class="value red" id="sum-saidas">R$ 0</div><div class="sub" id="sum-saidas-count">0 compromissos</div></div>
         <div class="sum-card"><div class="label">Saldo Médio/Mês</div><div class="value" id="sum-saldo">R$ 0</div><div class="sub">média entradas − saídas</div></div>
       </div>
+
+      <!-- GRÁFICO EVOLUÇÃO MENSAL -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <div class="card-title">📈 Evolução Mensal — Entradas vs Saídas</div>
+          <select id="chart-months-filter" onchange="renderChart()" style="font-size:11px;padding:5px 10px;width:auto">
+            <option value="6">Últimos 6 meses</option>
+            <option value="12">Últimos 12 meses</option>
+            <option value="3">Últimos 3 meses</option>
+          </select>
+        </div>
+        <div style="padding:16px 20px 8px">
+          <canvas id="monthly-chart" height="180"></canvas>
+          <div id="chart-legend" style="display:flex;gap:20px;justify-content:center;margin-top:10px;font-size:11px;color:var(--text2)">
+            <span><span style="display:inline-block;width:12px;height:12px;background:var(--accent);border-radius:3px;margin-right:5px;vertical-align:middle"></span>Entradas</span>
+            <span><span style="display:inline-block;width:12px;height:12px;background:var(--danger);border-radius:3px;margin-right:5px;vertical-align:middle"></span>Saídas</span>
+            <span><span style="display:inline-block;width:12px;height:12px;background:var(--accent3);border-radius:3px;margin-right:5px;vertical-align:middle"></span>Saldo</span>
+          </div>
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
         <div class="card">
           <div class="card-header"><div class="card-title">📅 Próximos Vencimentos</div></div>
@@ -179,10 +236,15 @@
   <!-- A RECEBER -->
   <div id="sec-recebiveis" class="section-hidden">
     <div class="topbar">
-      <div class="page-title">A Receber <span>carros e imóveis parcelados</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="page-title">A Receber <span>carros e imóveis parcelados</span></div>
+      </div>
       <button class="btn btn-primary" onclick="openModal('modal-recebivel')">+ Cadastrar</button>
     </div>
     <div class="content">
+      <!-- Cards de resumo A Receber -->
+      <div id="recv-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px"></div>
       <div class="card"><div class="card-body">
         <table><thead><tr><th>Devedor</th><th>Descrição</th><th>Dia Venc.</th><th>Parcela</th><th>Pagas/Total</th><th>Restante</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody id="tb-recebiveis"><tr><td colspan="8" class="empty">Nenhum cadastrado</td></tr></tbody></table>
@@ -193,7 +255,10 @@
   <!-- ENTRADAS -->
   <div id="sec-entradas" class="section-hidden">
     <div class="topbar">
-      <div class="page-title">Entradas <span>lance o valor real de cada mês</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="page-title">Entradas <span>lance o valor real de cada mês</span></div>
+      </div>
       <button class="btn btn-primary" onclick="openModal('modal-entrada')">+ Cadastrar Fonte</button>
     </div>
     <div class="content">
@@ -210,7 +275,10 @@
   <!-- SAÍDAS -->
   <div id="sec-saidas" class="section-hidden">
     <div class="topbar">
-      <div class="page-title">Saídas <span>compromissos e despesas</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="page-title">Saídas <span>compromissos e despesas</span></div>
+      </div>
       <button class="btn btn-primary" onclick="openModal('modal-saida')">+ Cadastrar</button>
     </div>
     <div class="content">
@@ -224,7 +292,10 @@
   <!-- DÍVIDAS -->
   <div id="sec-dividas" class="section-hidden">
     <div class="topbar">
-      <div class="page-title">Dívidas <span>ranking de prioridade</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="page-title">Dívidas <span>ranking de prioridade</span></div>
+      </div>
       <button class="btn btn-primary" onclick="openModal('modal-divida')">+ Cadastrar</button>
     </div>
     <div class="content">
@@ -241,7 +312,10 @@
   <!-- METAS -->
   <div id="sec-metas" class="section-hidden">
     <div class="topbar">
-      <div class="page-title">Metas <span>objetivos financeiros</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="page-title">Metas <span>objetivos financeiros</span></div>
+      </div>
       <button class="btn btn-primary" onclick="openModal('modal-meta')">+ Nova Meta</button>
     </div>
     <div class="content">
@@ -254,10 +328,14 @@
   <!-- CHEQUES -->
   <div id="sec-cheques" class="section-hidden">
     <div class="topbar">
-      <div class="page-title">Cheques <span>cheques a cobrir</span></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <div class="page-title">Cheques <span>cheques a cobrir</span></div>
+      </div>
       <button class="btn btn-primary" onclick="openModal('modal-cheque')">+ Cadastrar</button>
     </div>
     <div class="content">
+      <div id="cheques-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px"></div>
       <div class="card"><div class="card-body">
         <table><thead><tr><th>Favorecido</th><th>Valor</th><th>Vencimento</th><th>Banco</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody id="tb-cheques"><tr><td colspan="6" class="empty">Nenhum cheque cadastrado</td></tr></tbody></table>
@@ -431,6 +509,9 @@
   </div>
 </div>
 
+<input type="file" id="import-file-input" accept=".json" onchange="handleImportFile(event)">
+<div class="chart-tooltip" id="chart-tooltip"></div>
+
 <script>
 // ===== STATE =====
 let state = JSON.parse(localStorage.getItem('fincontrol2') || '{}');
@@ -461,7 +542,205 @@ function showSection(id, el){
   document.getElementById('sec-'+id).classList.remove('section-hidden');
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   el.classList.add('active');
+  closeSidebar();
   render();
+}
+
+// ===== MOBILE SIDEBAR =====
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('mobile-overlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mobile-overlay').classList.remove('open');
+}
+
+// ===== EXPORT / IMPORT =====
+function exportData(){
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = url;
+  a.download = 'fincontrol-backup-'+d.toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(){
+  if(!confirm('⚠️ Importar substituirá TODOS os dados atuais. Tem certeza?')) return;
+  document.getElementById('import-file-input').click();
+}
+function handleImportFile(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const imported = JSON.parse(ev.target.result);
+      ['recebiveis','entradas','saidas','dividas','metas','cheques'].forEach(k=>{
+        if(imported[k]) state[k]=imported[k];
+      });
+      save(); render();
+      alert('✅ Dados importados com sucesso!');
+    }catch(err){ alert('❌ Arquivo inválido. Use um backup gerado pelo FinControl.'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+// ===== QUICK PAY (parcela rápida) =====
+function quickPay(id){
+  const item = state.recebiveis.find(x=>x.id===id);
+  if(!item) return;
+  if(item.pagas >= item.total){ alert('Todas as parcelas já foram pagas!'); return; }
+  if(!confirm(`Marcar 1 parcela como paga para ${item.devedor}?\n(${item.pagas+1}/${item.total})`)) return;
+  item.pagas++;
+  save(); render();
+}
+
+// ===== CHART =====
+function renderChart(){
+  const n = parseInt(document.getElementById('chart-months-filter')?.value||6);
+  const now = new Date();
+  const months = [];
+  for(let i=n-1;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));
+  }
+
+  const entData = months.map(ym=>{
+    return state.entradas.reduce((s,e)=>{
+      const h=(e.historico||[]).find(x=>x.ym===ym);
+      return s+(h?h.valor:0);
+    },0);
+  });
+  const saiData = months.map(ym=>{
+    return state.saidas.reduce((s,ss)=>{
+      const h=(ss.historico||[]).find(x=>x.ym===ym);
+      return s+(h?h.valor:0);
+    },0);
+  });
+  const saldoData = months.map((_, i) => entData[i] - saiData[i]);
+
+  const canvas = document.getElementById('monthly-chart');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth - 40;
+  canvas.width = W; canvas.height = 180;
+
+  const allVals = [...entData, ...saiData, ...saldoData].filter(v=>v!==0);
+  const maxV = allVals.length>0 ? Math.max(...allVals.map(Math.abs)) : 1;
+  const pad = {top:20, bottom:36, left:70, right:16};
+  const chartW = W - pad.left - pad.right;
+  const chartH = 180 - pad.top - pad.bottom;
+  const zeroY = pad.top + chartH * 0.6; // zero line at 60% from top
+
+  ctx.clearRect(0,0,W,180);
+
+  // Grid lines
+  const style = getComputedStyle(document.documentElement);
+  const col = {
+    accent: style.getPropertyValue('--accent').trim()||'#00e5a0',
+    danger: style.getPropertyValue('--danger').trim()||'#ff4d6d',
+    accent3: style.getPropertyValue('--accent3').trim()||'#7b8cff',
+    border: style.getPropertyValue('--border').trim()||'#1e2330',
+    text2: style.getPropertyValue('--text2').trim()||'#8891a8',
+    text3: style.getPropertyValue('--text3').trim()||'#4a5268',
+  };
+
+  // zero line
+  ctx.strokeStyle = col.border; ctx.lineWidth = 1;
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(pad.left, zeroY); ctx.lineTo(pad.left+chartW, zeroY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  const barW = Math.max(4, (chartW / months.length) * 0.22);
+  const groupW = chartW / months.length;
+
+  // helper: y from value
+  const toY = v => {
+    if(maxV===0) return zeroY;
+    const ratio = v / (maxV * 1.1);
+    return zeroY - ratio * (chartH * 0.55);
+  };
+
+  months.forEach((ym, i)=>{
+    const x = pad.left + i * groupW + groupW/2;
+    const ent = entData[i], sai = saiData[i], saldo = saldoData[i];
+
+    // entradas bar
+    if(ent>0){
+      ctx.fillStyle = col.accent+'99';
+      const y = toY(ent); const h = Math.abs(zeroY-y);
+      ctx.fillRect(x - barW*1.4, y, barW, h);
+    }
+    // saidas bar
+    if(sai>0){
+      ctx.fillStyle = col.danger+'99';
+      const y = toY(sai); const h = Math.abs(zeroY-y);
+      ctx.fillRect(x - barW*0.1, y, barW, h);
+    }
+    // saldo dot+line (drawn later as line)
+  });
+
+  // saldo line
+  ctx.strokeStyle = col.accent3; ctx.lineWidth = 2;
+  ctx.beginPath();
+  months.forEach((ym,i)=>{
+    const x = pad.left + i*groupW + groupW/2;
+    const y = toY(saldoData[i]);
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  months.forEach((ym,i)=>{
+    const x = pad.left + i*groupW + groupW/2;
+    const y = toY(saldoData[i]);
+    ctx.fillStyle = saldoData[i]>=0 ? col.accent3 : col.danger;
+    ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill();
+  });
+
+  // X labels
+  ctx.fillStyle = col.text3; ctx.font = '10px DM Mono, monospace'; ctx.textAlign = 'center';
+  months.forEach((ym,i)=>{
+    const x = pad.left + i*groupW + groupW/2;
+    ctx.fillText(monthLabel(ym), x, 180-8);
+  });
+
+  // Y labels
+  ctx.textAlign = 'right'; ctx.fillStyle = col.text3;
+  const ySteps = [maxV*1.1, maxV*0.55, 0, -maxV*0.3];
+  ySteps.forEach(v=>{
+    const y = toY(v);
+    if(y<pad.top||y>180-pad.bottom) return;
+    const label = v===0?'0':(Math.abs(v)>=1000?(Math.abs(v)/1000).toFixed(0)+'k':Math.abs(v).toFixed(0));
+    ctx.fillText((v<0?'-':'')+label, pad.left-6, y+3);
+  });
+
+  // Hover tooltip
+  canvas._chartData = {months, entData, saiData, saldoData, pad, groupW};
+}
+
+function setupChartTooltip(){
+  const canvas = document.getElementById('monthly-chart');
+  if(!canvas) return;
+  const tip = document.getElementById('chart-tooltip');
+  canvas.addEventListener('mousemove', e=>{
+    const d = canvas._chartData; if(!d) return;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const i = Math.floor((mx - d.pad.left) / d.groupW);
+    if(i<0||i>=d.months.length){ tip.style.display='none'; return; }
+    const fmtK = v=>'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    tip.innerHTML = `<strong style="color:var(--text)">${monthLabel(d.months[i])}</strong><br>
+      <span style="color:var(--accent)">▋ Entradas: ${fmtK(d.entData[i])}</span><br>
+      <span style="color:var(--danger)">▋ Saídas: ${fmtK(d.saiData[i])}</span><br>
+      <span style="color:var(--accent3)">● Saldo: ${fmtK(d.saldoData[i])}</span>`;
+    tip.style.display='block';
+    tip.style.left=(e.clientX+12)+'px';
+    tip.style.top=(e.clientY-20)+'px';
+  });
+  canvas.addEventListener('mouseleave',()=>{ tip.style.display='none'; });
 }
 
 // ===== MODAL =====
@@ -694,6 +973,35 @@ function delItem(arr, id){
 function render(){
   renderDashboard(); renderRecebiveis(); renderEntradas(); renderSaidas();
   renderDividas(); renderMetas(); renderCheques();
+  renderChart();
+  checkAlerts();
+}
+
+function checkAlerts(){
+  const today = new Date().toISOString().split('T')[0];
+  const todayDay = new Date().getDate();
+  const alerts = [];
+
+  // Cheques vencidos ou vencendo em 3 dias
+  state.cheques.filter(c=>c.status==='pendente'&&c.venc).forEach(c=>{
+    const diff = Math.ceil((new Date(c.venc+' 12:00')-new Date())/(1000*60*60*24));
+    if(diff<=3&&diff>=0) alerts.push(`⏰ Cheque "${c.fav}" vence em ${diff===0?'hoje':''+diff+' dias'} (${fmt(c.valor)})`);
+    else if(diff<0) alerts.push(`🔴 Cheque "${c.fav}" venceu há ${Math.abs(diff)} dias! (${fmt(c.valor)})`);
+  });
+  // Saídas vencendo hoje
+  state.saidas.forEach(s=>{
+    if(s.dia===todayDay) alerts.push(`📅 Saída "${s.nome}" vence hoje (dia ${s.dia})`);
+    else if(s.dia===todayDay+1) alerts.push(`⚠️ Saída "${s.nome}" vence amanhã (dia ${s.dia})`);
+  });
+
+  const banner = document.getElementById('alert-banner');
+  const alertText = document.getElementById('alert-text');
+  if(alerts.length>0){
+    alertText.textContent = alerts[0]+(alerts.length>1?' · +'+(alerts.length-1)+' alerta(s)':'');
+    banner.style.display='block';
+  } else {
+    banner.style.display='none';
+  }
 }
 
 function calcTotalEntradas(){
@@ -747,6 +1055,18 @@ function renderDashboard(){
 }
 
 function renderRecebiveis(){
+  // Summary cards
+  const sumEl = document.getElementById('recv-summary');
+  if(sumEl){
+    const totalVal = state.recebiveis.reduce((s,r)=>s+r.valor*(r.total-r.pagas),0);
+    const ativos = state.recebiveis.filter(r=>r.pagas<r.total).length;
+    const quitados = state.recebiveis.filter(r=>r.pagas>=r.total).length;
+    const recMensal = state.recebiveis.filter(r=>r.pagas<r.total).reduce((s,r)=>s+r.valor,0);
+    sumEl.innerHTML = `
+      <div class="sum-card"><div class="label">Total a Receber</div><div class="value green">${fmt(totalVal)}</div><div class="sub">${ativos} ativos · ${quitados} quitados</div></div>
+      <div class="sum-card"><div class="label">Entrada Mensal</div><div class="value green">${fmt(recMensal)}</div><div class="sub">soma das parcelas ativas</div></div>
+      <div class="sum-card"><div class="label">Devedores</div><div class="value blue">${state.recebiveis.length}</div><div class="sub">cadastrados</div></div>`;
+  }
   const tb=document.getElementById('tb-recebiveis');
   if(state.recebiveis.length===0){ tb.innerHTML='<tr><td colspan="8" class="empty">Nenhum cadastrado</td></tr>'; return; }
   const today=new Date().getDate();
@@ -759,6 +1079,7 @@ function renderRecebiveis(){
       <td class="green">${fmt(r.valor)}</td><td>${r.pagas}/${r.total}</td>
       <td class="green">${fmt(totalRestante)}</td><td>${statusBadge}</td>
       <td><div class="action-btns">
+        ${restantes>0?`<button class="btn btn-pay btn-sm" onclick="quickPay(${r.id})" title="Marcar parcela como paga">✓ Pago</button>`:''}
         <button class="btn btn-edit btn-sm" onclick="openEditRecebivel(${r.id})">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="delItem('recebiveis',${r.id})">×</button>
       </div></td>
@@ -871,6 +1192,19 @@ function renderMetas(){
 }
 
 function renderCheques(){
+  // Summary cards
+  const sumEl = document.getElementById('cheques-summary');
+  if(sumEl && state.cheques.length>0){
+    const today=new Date().toISOString().split('T')[0];
+    const pendentes = state.cheques.filter(c=>c.status==='pendente');
+    const vencidos = pendentes.filter(c=>c.venc&&c.venc<today);
+    const totalPend = pendentes.reduce((s,c)=>s+c.valor,0);
+    sumEl.innerHTML = `
+      <div class="sum-card"><div class="label">Total Pendente</div><div class="value red">${fmt(totalPend)}</div><div class="sub">${pendentes.length} cheques</div></div>
+      <div class="sum-card"><div class="label">Vencidos</div><div class="value red">${vencidos.length}</div><div class="sub">${fmt(vencidos.reduce((s,c)=>s+c.valor,0))}</div></div>
+      <div class="sum-card"><div class="label">Cobertos</div><div class="value green">${state.cheques.filter(c=>c.status==='coberto').length}</div><div class="sub">de ${state.cheques.length} total</div></div>`;
+  } else if(sumEl){ sumEl.innerHTML=''; }
+
   const tb=document.getElementById('tb-cheques');
   if(state.cheques.length===0){ tb.innerHTML='<tr><td colspan="6" class="empty">Nenhum cheque cadastrado</td></tr>'; return; }
   const today=new Date().toISOString().split('T')[0];
@@ -923,6 +1257,8 @@ if(state.entradas.length===0){
 }
 
 render();
+setTimeout(()=>{ setupChartTooltip(); },100);
+window.addEventListener('resize', ()=>{ renderChart(); });
 </script>
 </body>
 </html>
