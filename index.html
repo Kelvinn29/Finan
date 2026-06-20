@@ -128,18 +128,147 @@
   .action-btns{display:flex;gap:5px;}
 
   @media(max-width:900px){
-    .sidebar{transform:translateX(-100%);transition:transform .25s ease;} 
+    /* ── LAYOUT ── */
+    .sidebar{transform:translateX(-100%);transition:transform .25s ease;}
     .sidebar.open{transform:translateX(0);}
     .mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;}
     .mobile-overlay.open{display:block;}
     .main{margin-left:0;}
-    .summary-grid{grid-template-columns:1fr 1fr;} .form-row{grid-template-columns:1fr;} .goals-grid{grid-template-columns:1fr;}
+
+    /* ── TOPBAR ── */
+    .topbar{padding:12px 16px;}
+    .page-title{font-size:16px;}
+    .page-title span{display:none;}
+    #current-date{display:none;}
+
+    /* ── CONTENT ── */
+    .content{padding:12px 14px;}
+
+    /* ── SUMMARY GRID ── */
+    .summary-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+    .sum-card{padding:14px 12px;}
+    .sum-card .value{font-size:18px;}
+    .sum-card .label{font-size:9px;}
+    #recv-summary{grid-template-columns:1fr 1fr!important;gap:10px!important;}
+    #cheques-summary{grid-template-columns:1fr 1fr!important;gap:10px!important;}
+
+    /* ── DASHBOARD GRID ── */
+    div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important;}
+
+    /* ── ALERT BANNER ── */
+    #alert-banner{padding:10px 14px;font-size:11px;}
+
+    /* ── FORMS / MODAIS ── */
+    .form-row{grid-template-columns:1fr;}
+    .goals-grid{grid-template-columns:1fr;}
+    .modal{border-radius:16px 16px 0 0;width:100%;max-width:100%;max-height:92vh;position:fixed;bottom:0;left:0;right:0;margin:0;}
+    .overlay{align-items:flex-end;}
+    .modal-body{padding:16px;}
+    .modal-header{padding:16px 20px;}
+    .modal-footer{padding:12px 16px;}
+    input,select,textarea{font-size:16px!important;padding:12px!important;} /* evita zoom no iOS */
+
+    /* ── HAMBURGER ── */
     .hamburger{display:flex!important;}
+
+    /* ── TABELAS → CARDS MOBILE ── */
+    /* Esconde o thead */
+    .mobile-table thead{display:none;}
+    /* Cada tr vira um card */
+    .mobile-table tbody tr{
+      display:block;
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:10px;
+      margin-bottom:10px;
+      padding:12px 14px;
+      position:relative;
+    }
+    .mobile-table tbody tr:hover td{background:transparent;}
+    .mobile-table tbody tr.overdue{background:rgba(255,77,109,.06);}
+    .mobile-table tbody tr td{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:4px 0!important;
+      border:none!important;
+      font-size:12px;
+    }
+    /* Label via data-label */
+    .mobile-table tbody tr td[data-label]::before{
+      content:attr(data-label);
+      font-size:10px;
+      color:var(--text3);
+      text-transform:uppercase;
+      letter-spacing:.8px;
+      flex-shrink:0;
+      margin-right:8px;
+      min-width:80px;
+    }
+    /* Linha sem label (ex: botões, expand) fica centralizada */
+    .mobile-table tbody tr td[data-label=""]{justify-content:flex-end;}
+    /* Célula de ações */
+    .mobile-table tbody tr td.td-actions{
+      justify-content:flex-end;
+      border-top:1px solid var(--border)!important;
+      margin-top:6px;
+      padding-top:8px!important;
+    }
+    /* Linha de histórico expandida */
+    .history-row{display:table-row!important;}
+    .history-row td{display:table-cell!important;padding:0!important;}
+    .history-inner{padding:12px 14px 14px;}
+    .add-month{flex-wrap:wrap;}
+    .add-month input,.add-month select{width:100%!important;}
+
+    /* ── DÍVIDAS MOBILE ── */
+    .debt-item{flex-wrap:wrap;gap:10px;}
+    .debt-amount{width:100%;display:flex;justify-content:space-between;align-items:center;}
+    .debt-amount .action-btns{margin-top:0!important;}
+
+    /* ── GRÁFICO ── */
+    .card-header{flex-wrap:wrap;gap:8px;}
+    #chart-months-filter{width:100%!important;}
+
+    /* ── BOTÕES ── */
+    .btn{padding:10px 14px;font-size:12px;}
+    .btn-sm{padding:8px 12px;font-size:11px;}
+    .action-btns{gap:6px;}
+
+    /* ── HISTORY INNER MOBILE ── */
+    .history-inner{padding:10px 12px;}
+    .stats-row{gap:10px;}
+
+    /* ── BOTTOM NAV BAR MOBILE ── */
+    .bottom-nav{display:flex!important;}
   }
-  .hamburger{display:none;background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:7px 10px;cursor:pointer;font-size:16px;line-height:1;transition:all .2s;}
-  .hamburger:hover{color:var(--text);border-color:var(--text3);}
-  @media(max-width:900px){.hamburger{display:flex;}}
-  .mobile-overlay{display:none;}
+
+  /* Bottom nav (só mobile) */
+  .bottom-nav{
+    display:none;
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--surface);
+    border-top:1px solid var(--border);
+    z-index:150;
+    padding:6px 0 env(safe-area-inset-bottom, 6px);
+    justify-content:space-around;
+    align-items:center;
+  }
+  .bn-item{
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:6px 8px;cursor:pointer;border-radius:8px;
+    font-size:9px;color:var(--text3);letter-spacing:.3px;
+    transition:all .15s;min-width:44px;text-align:center;
+    background:none;border:none;
+  }
+  .bn-item .bn-icon{font-size:20px;line-height:1;}
+  .bn-item.active{color:var(--accent);}
+  .bn-item.active .bn-icon{filter:drop-shadow(0 0 4px var(--accent));}
+  /* Garante que o conteúdo não fique atrás da bottom nav */
+  @media(max-width:900px){
+    .main{padding-bottom:70px;}
+  }
 
   /* Tooltip confirm delete */
   .btn-confirm{background:rgba(255,77,109,.35)!important;border-color:var(--danger)!important;color:var(--danger)!important;animation:pulse-red .5s infinite alternate;}
@@ -246,7 +375,7 @@
       <!-- Cards de resumo A Receber -->
       <div id="recv-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px"></div>
       <div class="card"><div class="card-body">
-        <table><thead><tr><th>Devedor</th><th>Descrição</th><th>Dia Venc.</th><th>Parcela</th><th>Pagas/Total</th><th>Restante</th><th>Status</th><th>Ações</th></tr></thead>
+        <table class="mobile-table"><thead><tr><th>Devedor</th><th>Descrição</th><th>Dia Venc.</th><th>Parcela</th><th>Pagas/Total</th><th>Restante</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody id="tb-recebiveis"><tr><td colspan="8" class="empty">Nenhum cadastrado</td></tr></tbody></table>
       </div></div>
     </div>
@@ -266,7 +395,7 @@
         💡 <strong style="color:var(--accent)">Como usar:</strong> Clique em <strong style="color:var(--text)">▶ Ver Histórico</strong> em cada fonte para lançar o valor real recebido em cada mês. O sistema calcula a média automaticamente.
       </div>
       <div class="card"><div class="card-body">
-        <table><thead><tr><th></th><th>Fonte</th><th>Categoria</th><th>Último Mês</th><th>Média (3m)</th><th>Média (6m)</th><th>Meses Lançados</th><th>Ações</th></tr></thead>
+        <table class="mobile-table"><thead><tr><th></th><th>Fonte</th><th>Categoria</th><th>Último Mês</th><th>Média (3m)</th><th>Média (6m)</th><th>Meses Lançados</th><th>Ações</th></tr></thead>
         <tbody id="tb-entradas"><tr><td colspan="8" class="empty">Nenhuma entrada cadastrada</td></tr></tbody></table>
       </div></div>
     </div>
@@ -283,7 +412,7 @@
     </div>
     <div class="content">
       <div class="card"><div class="card-body">
-        <table><thead><tr><th></th><th>Descrição</th><th>Categoria</th><th>Recorrência</th><th>Último Mês</th><th>Média (3m)</th><th>Dia Venc.</th><th>Saldo Devedor</th><th>Ações</th></tr></thead>
+        <table class="mobile-table"><thead><tr><th></th><th>Descrição</th><th>Categoria</th><th>Recorrência</th><th>Último Mês</th><th>Média (3m)</th><th>Dia Venc.</th><th>Saldo Devedor</th><th>Ações</th></tr></thead>
         <tbody id="tb-saidas"><tr><td colspan="9" class="empty">Nenhuma saída cadastrada</td></tr></tbody></table>
       </div></div>
     </div>
@@ -337,13 +466,38 @@
     <div class="content">
       <div id="cheques-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px"></div>
       <div class="card"><div class="card-body">
-        <table><thead><tr><th>Favorecido</th><th>Valor</th><th>Vencimento</th><th>Banco</th><th>Status</th><th>Ações</th></tr></thead>
+        <table class="mobile-table"><thead><tr><th>Favorecido</th><th>Valor</th><th>Vencimento</th><th>Banco</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody id="tb-cheques"><tr><td colspan="6" class="empty">Nenhum cheque cadastrado</td></tr></tbody></table>
       </div></div>
     </div>
   </div>
 
 </div><!-- /main -->
+
+<!-- BOTTOM NAV MOBILE -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bn-item active" onclick="showSection('dashboard',this);syncBottomNav(this)" data-sec="dashboard">
+    <span class="bn-icon">📊</span>Dashboard
+  </button>
+  <button class="bn-item" onclick="showSection('recebiveis',this);syncBottomNav(this)" data-sec="recebiveis">
+    <span class="bn-icon">💰</span>Receber
+  </button>
+  <button class="bn-item" onclick="showSection('entradas',this);syncBottomNav(this)" data-sec="entradas">
+    <span class="bn-icon">📈</span>Entradas
+  </button>
+  <button class="bn-item" onclick="showSection('saidas',this);syncBottomNav(this)" data-sec="saidas">
+    <span class="bn-icon">📉</span>Saídas
+  </button>
+  <button class="bn-item" onclick="showSection('dividas',this);syncBottomNav(this)" data-sec="dividas">
+    <span class="bn-icon">⚠️</span>Dívidas
+  </button>
+  <button class="bn-item" onclick="showSection('metas',this);syncBottomNav(this)" data-sec="metas">
+    <span class="bn-icon">🎯</span>Metas
+  </button>
+  <button class="bn-item" onclick="showSection('cheques',this);syncBottomNav(this)" data-sec="cheques">
+    <span class="bn-icon">📋</span>Cheques
+  </button>
+</nav>
 
 <!-- ===== MODAIS ===== -->
 
@@ -571,9 +725,21 @@ function showSection(id, el){
   document.querySelectorAll('[id^="sec-"]').forEach(e=>e.classList.add('section-hidden'));
   document.getElementById('sec-'+id).classList.remove('section-hidden');
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
-  el.classList.add('active');
+  // el pode ser nav-item da sidebar ou bn-item do bottom nav
+  if(el && el.classList.contains('nav-item')) el.classList.add('active');
+  // Sincroniza bottom nav
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  const bn = document.querySelector('.bn-item[data-sec="'+id+'"]');
+  if(bn) bn.classList.add('active');
+  // Sincroniza sidebar nav
+  const sideItem = [...document.querySelectorAll('.nav-item')].find(n=>n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'"));
+  if(sideItem) sideItem.classList.add('active');
   closeSidebar();
   render();
+}
+function syncBottomNav(el){
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
 }
 
 // ===== MOBILE SIDEBAR =====
@@ -1184,11 +1350,15 @@ function renderRecebiveis(){
     let statusBadge=diff<0?'<span class="badge badge-red">Vencido</span>':diff<=3?'<span class="badge badge-yellow">Próximo</span>':'<span class="badge badge-green">OK</span>';
     if(restantes===0) statusBadge='<span class="badge badge-green">Quitado ✓</span>';
     return `<tr id="row-recebiveis-${r.id}" class="${diff<0&&restantes>0?'overdue':''}">
-      <td><strong>${r.devedor}</strong></td><td>${r.desc||'—'}</td><td>Dia ${r.dia}</td>
-      <td class="green">${fmt(r.valor)}</td><td>${r.pagas}/${r.total}</td>
-      <td class="green">${fmt(totalRestante)}</td><td>${statusBadge}</td>
-      <td><div class="action-btns">
-        ${restantes>0?`<button class="btn btn-pay btn-sm" onclick="quickPay(${r.id})" title="Marcar parcela como paga">✓ Pago</button>`:''}
+      <td data-label="Devedor"><strong>${r.devedor}</strong></td>
+      <td data-label="Descrição">${r.desc||'—'}</td>
+      <td data-label="Vencimento">Dia ${r.dia}</td>
+      <td data-label="Parcela" class="green">${fmt(r.valor)}</td>
+      <td data-label="Pagas">${r.pagas}/${r.total}</td>
+      <td data-label="Restante" class="green">${fmt(totalRestante)}</td>
+      <td data-label="Status">${statusBadge}</td>
+      <td class="td-actions"><div class="action-btns">
+        ${restantes>0?`<button class="btn btn-pay btn-sm" onclick="quickPay(${r.id})">✓ Pago</button>`:''}
         <button class="btn btn-edit btn-sm" onclick="openEditRecebivel(${r.id})">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="delItem('recebiveis',${r.id})">×</button>
       </div></td>
@@ -1206,14 +1376,14 @@ function renderEntradas(){
     const avg3=h.length>=3?avgLast(h,3):null;
     const avg6=h.length>=6?avgLast(h,6):null;
     return `<tr id="row-entradas-${e.id}">
-      <td><button class="btn btn-ghost btn-sm" onclick="toggleHistory('entradas',${e.id})" title="Ver histórico">▶</button></td>
-      <td><strong>${e.nome}</strong>${e.obs?'<br><span style="color:var(--text3);font-size:10px">'+e.obs+'</span>':''}</td>
-      <td><span class="badge ${cats[e.cat]||'badge-blue'}">${e.cat}</span></td>
-      <td class="green">${ultimo!==null?fmt(ultimo):'<span style="color:var(--text3)">—</span>'}</td>
-      <td>${avg3!==null?fmt(avg3):'<span style="color:var(--text3)">—</span>'}</td>
-      <td>${avg6!==null?fmt(avg6):'<span style="color:var(--text3)">—</span>'}</td>
-      <td>${h.length} ${h.length===1?'mês':'meses'}</td>
-      <td><div class="action-btns">
+      <td data-label=""><button class="btn btn-ghost btn-sm" onclick="toggleHistory('entradas',${e.id})" title="Histórico">📅 Histórico</button></td>
+      <td data-label="Fonte"><strong>${e.nome}</strong>${e.obs?'<br><span style="color:var(--text3);font-size:10px">'+e.obs+'</span>':''}</td>
+      <td data-label="Categoria"><span class="badge ${cats[e.cat]||'badge-blue'}">${e.cat}</span></td>
+      <td data-label="Último mês" class="green">${ultimo!==null?fmt(ultimo):'<span style="color:var(--text3)">—</span>'}</td>
+      <td data-label="Média 3m">${avg3!==null?fmt(avg3):'<span style="color:var(--text3)">—</span>'}</td>
+      <td data-label="Média 6m">${avg6!==null?fmt(avg6):'<span style="color:var(--text3)">—</span>'}</td>
+      <td data-label="Meses">${h.length} ${h.length===1?'mês':'meses'}</td>
+      <td class="td-actions"><div class="action-btns">
         <button class="btn btn-edit btn-sm" onclick="openEditEntrada(${e.id})">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="delItem('entradas',${e.id})">×</button>
       </div></td>
@@ -1225,7 +1395,6 @@ function renderSaidas(){
   const tb=document.getElementById('tb-saidas');
   if(state.saidas.length===0){ tb.innerHTML='<tr><td colspan="9" class="empty">Nenhuma saída cadastrada</td></tr>'; return; }
 
-  // Separar ativas e encerradas
   const ativas = state.saidas.filter(s=>isSaidaAtiva(s));
   const encerradas = state.saidas.filter(s=>!isSaidaAtiva(s));
 
@@ -1243,15 +1412,15 @@ function renderSaidas(){
           : `<span class="badge badge-yellow">${fim.label}</span>`;
     const rowStyle = inativa ? 'opacity:.5;' : '';
     return `<tr id="row-saidas-${s.id}" style="${rowStyle}">
-      <td><button class="btn btn-ghost btn-sm" onclick="toggleHistory('saidas',${s.id})" title="Ver histórico">▶</button></td>
-      <td><strong>${s.nome}</strong>${s.obs?'<br><span style="color:var(--text3);font-size:10px">'+s.obs+'</span>':''}</td>
-      <td>${s.cat}</td>
-      <td>${recBadge}${fim&&!inativa?`<br><span style="color:var(--text3);font-size:10px">até ${monthLabel(fim.fim)}</span>`:''}${fim&&inativa?`<br><span style="color:var(--text3);font-size:10px">encerrou ${monthLabel(fim.fim)}</span>`:''}</td>
-      <td class="red">${ultimo!==null?fmt(ultimo):'<span style="color:var(--text3)">—</span>'}</td>
-      <td>${avg3!==null?fmt(avg3):'<span style="color:var(--text3)">—</span>'}</td>
-      <td>Dia ${s.dia}</td>
-      <td>${s.saldo>0?fmt(s.saldo):'—'}</td>
-      <td><div class="action-btns">
+      <td data-label=""><button class="btn btn-ghost btn-sm" onclick="toggleHistory('saidas',${s.id})" title="Histórico">📅 Histórico</button></td>
+      <td data-label="Descrição"><strong>${s.nome}</strong>${s.obs?'<br><span style="color:var(--text3);font-size:10px">'+s.obs+'</span>':''}</td>
+      <td data-label="Categoria">${s.cat}</td>
+      <td data-label="Recorrência">${recBadge}${fim&&!inativa?`<span style="color:var(--text3);font-size:10px;margin-left:4px">até ${monthLabel(fim.fim)}</span>`:''}${fim&&inativa?`<span style="color:var(--text3);font-size:10px;margin-left:4px">encerrou ${monthLabel(fim.fim)}</span>`:''}</td>
+      <td data-label="Último mês" class="red">${ultimo!==null?fmt(ultimo):'<span style="color:var(--text3)">—</span>'}</td>
+      <td data-label="Média 3m">${avg3!==null?fmt(avg3):'<span style="color:var(--text3)">—</span>'}</td>
+      <td data-label="Vencimento">Dia ${s.dia}</td>
+      <td data-label="Saldo dev.">${s.saldo>0?fmt(s.saldo):'—'}</td>
+      <td class="td-actions"><div class="action-btns">
         <button class="btn btn-edit btn-sm" onclick="openEditSaida(${s.id})">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="delItem('saidas',${s.id})">×</button>
       </div></td>
@@ -1345,12 +1514,12 @@ function renderCheques(){
     const overdue=c.venc&&c.venc<today&&c.status==='pendente';
     const badge=c.status==='coberto'?'<span class="badge badge-green">Coberto ✓</span>':c.status==='devolvido'?'<span class="badge badge-red">Devolvido</span>':overdue?'<span class="badge badge-red">Vencido</span>':'<span class="badge badge-yellow">Pendente</span>';
     return `<tr id="row-cheques-${c.id}" class="${overdue?'overdue':''}">
-      <td><strong>${c.fav}</strong></td>
-      <td class="red">${fmt(c.valor)}</td>
-      <td>${c.venc||'—'}</td>
-      <td>${c.banco||'—'}</td>
-      <td>${badge}</td>
-      <td><div class="action-btns">
+      <td data-label="Favorecido"><strong>${c.fav}</strong></td>
+      <td data-label="Valor" class="red">${fmt(c.valor)}</td>
+      <td data-label="Vencimento">${c.venc||'—'}</td>
+      <td data-label="Banco">${c.banco||'—'}</td>
+      <td data-label="Status">${badge}</td>
+      <td class="td-actions"><div class="action-btns">
         <button class="btn btn-edit btn-sm" onclick="openEditCheque(${c.id})">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="delItem('cheques',${c.id})">×</button>
       </div></td>
