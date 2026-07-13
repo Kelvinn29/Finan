@@ -698,10 +698,10 @@
 
 <script>
 // ===== STATE =====
-let state = JSON.parse(localStorage.getItem('fincontrol2') || '{}');
+let state = JSON.parse(localStorage.getItem('fincontrol3') || '{}');
 ['recebiveis','entradas','saidas','dividas','metas','cheques'].forEach(k => { if(!state[k]) state[k] = []; });
 
-function save(){ localStorage.setItem('fincontrol2', JSON.stringify(state)); }
+function save(){ localStorage.setItem('fincontrol3', JSON.stringify(state)); }
 function fmt(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtPct(v){ return Number(v||0).toFixed(1)+'%'; }
 function monthLabel(ym){ const [y,m]=ym.split('-'); const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; return months[parseInt(m)-1]+'/'+y.slice(2); }
@@ -1530,33 +1530,6 @@ function renderCheques(){
 // ===== INIT =====
 document.getElementById('current-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
 
-// Migrar dados antigos se existirem
-const old=localStorage.getItem('fincontrol');
-if(old && state.entradas.length===0){
-  try{
-    const o=JSON.parse(old);
-    if(o.recebiveis) state.recebiveis=o.recebiveis;
-    if(o.dividas) state.dividas=o.dividas;
-    if(o.metas) state.metas=o.metas;
-    if(o.cheques) state.cheques=o.cheques;
-    if(o.saidas) state.saidas=o.saidas.map(s=>({...s,historico:[]}));
-    if(o.entradas) state.entradas=o.entradas.map(e=>({...e,historico:[{ym:currentYM(),valor:e.valor}]}));
-    save();
-  }catch(e){}
-}
-
-// Pré-carregar dados do Kelvin se ainda vazio
-if(state.entradas.length===0){
-  const ym=currentYM();
-  state.entradas=[
-    {id:1,nome:'Loja de Bebida 1',cat:'Loja / Comércio',obs:'Faturamento ~80k',historico:[{ym,valor:15000}]},
-    {id:2,nome:'Salário Policial',cat:'Salário',obs:'',historico:[{ym,valor:9000}]},
-    {id:3,nome:'Loja de Maquiagem',cat:'Loja / Comércio',obs:'Faturamento ~25k',historico:[{ym,valor:6000}]},
-    {id:4,nome:'Loja de Bebida 2',cat:'Loja / Comércio',obs:'Faturamento ~30k',historico:[{ym,valor:3000}]},
-    {id:5,nome:'Aluguel Recebido',cat:'Aluguel',obs:'',historico:[{ym,valor:5000}]},
-  ];
-  save();
-}
 
 render();
 setTimeout(()=>{ 
